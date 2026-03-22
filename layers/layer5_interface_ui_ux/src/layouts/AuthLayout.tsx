@@ -1,3 +1,4 @@
+import React from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
 import { BrandLotus } from "../components/BrandLotus";
 import "./auth-layout.css";
@@ -55,6 +56,7 @@ const valueRows = [
 ];
 
 export function AuthLayout() {
+  const [showContact, setShowContact] = React.useState(false);
   const location = useLocation();
   const isLogin = location.pathname !== "/register";
   const layoutClassName = `auth-layout${isLogin ? " auth-layout--login" : " auth-layout--register"}`;
@@ -109,14 +111,22 @@ export function AuthLayout() {
               <span className="auth-layout__footer-sep">|</span>
               <Link to="/privacy">Privacy Policy</Link>
               <span className="auth-layout__footer-sep">|</span>
-              <a href="#contact" className="auth-layout__contact-link">Contact</a>
+              <button
+                type="button"
+                onClick={() => setShowContact(!showContact)}
+                className="auth-layout__contact-link"
+              >
+                Contact
+              </button>
             </div>
-            <div className="auth-layout__footer-contact" id="contact">
-              <div className="auth-layout__contact-name">Aditya Talekar</div>
-              <div className="auth-layout__contact-role">Founder, Fundamental Labs</div>
-              <div className="auth-layout__contact-detail">aditya.a.talekar@gmail.com</div>
-              <div className="auth-layout__contact-detail">+91 96739 04714</div>
-            </div>
+            {showContact && (
+              <div className="auth-layout__footer-contact">
+                <div className="auth-layout__contact-name">Aditya Talekar</div>
+                <div className="auth-layout__contact-role">Founder, Fundamental Labs</div>
+                <div className="auth-layout__contact-detail">aditya.a.talekar@gmail.com</div>
+                <div className="auth-layout__contact-detail">+91 96739 04714</div>
+              </div>
+            )}
           </div>
         </section>
 
