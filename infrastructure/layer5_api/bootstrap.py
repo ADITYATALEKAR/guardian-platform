@@ -11,6 +11,7 @@ from infrastructure.layer5_api.app import Layer5API
 from infrastructure.operator_plane.services.operator_service import OperatorService
 from infrastructure.runtime.engine_runtime import EngineRuntime
 from infrastructure.runtime.health import HealthState
+from infrastructure.runtime.tenant_lifecycle_manager import TenantLifecycleManager
 from infrastructure.storage_manager.identity_manager import IdentityManager
 from infrastructure.storage_manager.storage_manager import StorageManager
 from infrastructure.unified_discovery_v2.snapshot_builder import SnapshotBuilder
@@ -59,34 +60,79 @@ class Layer5RuntimeBundle:
 
 
 def _seed_admin_from_env(operator_service: "OperatorService") -> None:
-    """Re-create the admin account from env vars if it doesn't exist yet.
+    """Idempotently seed the admin account from env vars on every cold start.
 
-    This handles Render's free-tier ephemeral filesystem: every cold start
-    wipes /data/operator_storage/, so we re-seed the account automatically
-    using GUARDIAN_ADMIN_EMAIL and GUARDIAN_ADMIN_PASSWORD.
+    On Render free tier, /data/ is ephemeral and wiped on each restart.
+    This function re-creates the admin operator + workspace on every boot
+    using deterministic IDs derived from the email, so the same tenant
+    directory is always used and scan data survives within a session.
+
+    Handles three cases:
+      1. Fresh start — create operator + workspace from scratch.
+      2. Operator exists, workspace exists — nothing to do.
+      3. Operator exists, workspace wiped — re-create workspace with same
+         deterministic tenant ID so the correct storage path is restored.
     """
+    import hashlib
     import logging
     logger = logging.getLogger(__name__)
     email = os.environ.get("GUARDIAN_ADMIN_EMAIL", "").strip()
     password = os.environ.get("GUARDIAN_ADMIN_PASSWORD", "").strip()
     if not email or not password:
         return
+
+    institution_name = os.environ.get("GUARDIAN_ADMIN_INSTITUTION", "").strip() or None
+
+    # Derive the same deterministic operator_id the adapter uses.
+    normalized = email.lower()
+    local = normalized.split("@")[0] if "@" in normalized else normalized
+    safe = "".join(ch for ch in local if ch.isalnum())[:12] or "user"
+    digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:6]
+    operator_id = f"usr_{safe}_{digest}"
+
     try:
+        # Attempt full registration (operator + workspace).
         operator_service.register_account_with_workspace(
             email=email,
             password=password,
             created_at_unix_ms=int(time.time() * 1000),
             status="ACTIVE",
-            institution_name=os.environ.get("GUARDIAN_ADMIN_INSTITUTION", "").strip() or None,
+            institution_name=institution_name,
         )
-        logger.info("guardian_seed_admin created email=%s", email)
+        logger.info("guardian_seed_admin: created operator+workspace email=%s", email)
+        return
     except Exception as exc:
         msg = str(exc).lower()
-        if "already exists" in msg or "email already" in msg:
-            # Account exists — normal after first boot, nothing to do.
-            pass
-        else:
-            logger.warning("guardian_seed_admin failed: %s", exc)
+        if "already exists" not in msg and "email already" not in msg and "workspace already" not in msg:
+            logger.warning("guardian_seed_admin: full registration failed: %s", exc)
+            return
+
+    # Operator already exists. Check if workspace (tenant) also exists.
+    try:
+        from infrastructure.operator_plane.registry.operator_registry import list_tenants as _list_tenants
+        existing_tenants = _list_tenants(operator_service._operator_storage_root, operator_id)
+        if existing_tenants:
+            # Both exist — nothing to do.
+            logger.debug("guardian_seed_admin: operator+workspace already present email=%s", email)
+            return
+    except Exception as exc:
+        logger.warning("guardian_seed_admin: could not check tenant list: %s", exc)
+        return
+
+    # Operator exists but workspace was wiped — re-create with deterministic tenant ID.
+    try:
+        deterministic_tenant_id = TenantLifecycleManager.derive_tenant_id_from_operator(operator_id)
+        operator_service.create_workspace(
+            operator_id=operator_id,
+            institution_name=institution_name or local.replace(".", " ").title() or "Workspace",
+        )
+        logger.info(
+            "guardian_seed_admin: re-created workspace tenant_id=%s email=%s",
+            deterministic_tenant_id,
+            email,
+        )
+    except Exception as exc:
+        logger.warning("guardian_seed_admin: workspace re-creation failed: %s", exc)
 
 
 def _validate_runtime_path(root: str, label: str) -> str:

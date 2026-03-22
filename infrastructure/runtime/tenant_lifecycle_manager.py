@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import secrets
@@ -7,7 +8,7 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from infrastructure.storage_manager.storage_manager import StorageManager
 from infrastructure.storage_manager.identity_manager import IdentityManager
@@ -141,6 +142,7 @@ class TenantLifecycleManager:
         *,
         name: str,
         password: str,
+        tenant_id: Optional[str] = None,
     ) -> str:
         """
         Registers tenant workspace and credentials without scan onboarding details.
@@ -156,16 +158,20 @@ class TenantLifecycleManager:
         if not password or not password.strip():
             raise ValueError("password cannot be empty")
 
-        tenant_id = self._generate_tenant_id(name)
-        attempts = 0
-        while (
-            self.storage.tenant_exists(tenant_id)
-            or self.identity.has_tenant(tenant_id)
-        ):
-            attempts += 1
-            if attempts > 5:
-                raise RuntimeError("Unable to generate unique tenant_id")
+        if tenant_id:
+            # Caller supplied a deterministic ID — use it directly.
+            self._validate_tenant_id(tenant_id)
+        else:
             tenant_id = self._generate_tenant_id(name)
+            attempts = 0
+            while (
+                self.storage.tenant_exists(tenant_id)
+                or self.identity.has_tenant(tenant_id)
+            ):
+                attempts += 1
+                if attempts > 5:
+                    raise RuntimeError("Unable to generate unique tenant_id")
+                tenant_id = self._generate_tenant_id(name)
 
         try:
             self._validate_tenant_id(tenant_id)
@@ -362,6 +368,17 @@ class TenantLifecycleManager:
         # 8 bytes = 64 bits of entropy
         suffix = secrets.token_hex(8)
         return f"tenant_{suffix}"
+
+    @staticmethod
+    def derive_tenant_id_from_operator(operator_id: str) -> str:
+        """Return a stable tenant_id derived deterministically from operator_id.
+
+        Used so that on ephemeral filesystems (Render free tier) the same
+        operator always gets the same tenant directory after a cold restart,
+        preserving scan data within the same deployment session.
+        """
+        digest = hashlib.sha1(operator_id.encode("utf-8")).hexdigest()[:16]
+        return f"tenant_{digest}"
 
     def _validate_tenant_id(self, tenant_id: str) -> None:
         if not tenant_id:

@@ -1750,8 +1750,15 @@ class DiscoveryEngine:
                     if int(time.time() * 1000) > effective_cycle_deadline_ms:
                         logger.warning(
                             "[DiscoveryEngine] Cycle time budget exceeded during observation. "
-                            "Stopping remaining endpoint work."
+                            "Draining remaining work queue items."
                         )
+                        # Drain all remaining queued endpoints so work_queue.join() unblocks.
+                        while True:
+                            try:
+                                work_queue.get_nowait()
+                                work_queue.task_done()
+                            except Exception:
+                                break
                         return
                     # -------------------------------
                     # Rate gate (observation-level)
