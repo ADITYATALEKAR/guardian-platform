@@ -58,6 +58,37 @@ class Layer5RuntimeBundle:
     scheduler: Optional[CycleScheduler] = None
 
 
+def _seed_admin_from_env(operator_service: "OperatorService") -> None:
+    """Re-create the admin account from env vars if it doesn't exist yet.
+
+    This handles Render's free-tier ephemeral filesystem: every cold start
+    wipes /data/operator_storage/, so we re-seed the account automatically
+    using GUARDIAN_ADMIN_EMAIL and GUARDIAN_ADMIN_PASSWORD.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    email = os.environ.get("GUARDIAN_ADMIN_EMAIL", "").strip()
+    password = os.environ.get("GUARDIAN_ADMIN_PASSWORD", "").strip()
+    if not email or not password:
+        return
+    try:
+        operator_service.register_account_with_workspace(
+            email=email,
+            password=password,
+            created_at_unix_ms=int(time.time() * 1000),
+            status="ACTIVE",
+            institution_name=os.environ.get("GUARDIAN_ADMIN_INSTITUTION", "").strip() or None,
+        )
+        logger.info("guardian_seed_admin created email=%s", email)
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "already exists" in msg or "email already" in msg:
+            # Account exists — normal after first boot, nothing to do.
+            pass
+        else:
+            logger.warning("guardian_seed_admin failed: %s", exc)
+
+
 def _validate_runtime_path(root: str, label: str) -> str:
     candidate = str(root or "").strip()
     if not candidate:
@@ -143,6 +174,12 @@ def build_layer5_runtime_bundle(config: Layer5BootstrapConfig) -> Layer5RuntimeB
         scheduler_cadence_seconds=config.scheduler_cadence_seconds,
         scheduler_tick_seconds=config.scheduler_tick_seconds,
     )
+
+    # Seed a default admin account from env vars on every startup.
+    # On ephemeral filesystems (Render free tier), the operator storage is
+    # wiped on each restart. GUARDIAN_ADMIN_EMAIL + GUARDIAN_ADMIN_PASSWORD
+    # let an account persist across restarts by re-creating it automatically.
+    _seed_admin_from_env(operator_service)
 
     api = Layer5API(
         runtime=runtime,

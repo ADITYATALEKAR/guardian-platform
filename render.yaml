@@ -16,3 +16,9 @@ services:
         sync: false
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: GUARDIAN_ADMIN_EMAIL
+        sync: false
+      - key: GUARDIAN_ADMIN_PASSWORD
+        sync: false
+      - key: GUARDIAN_ADMIN_INSTITUTION
+        sync: false
