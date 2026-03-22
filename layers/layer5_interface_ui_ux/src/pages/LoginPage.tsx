@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useSessionStore } from "../stores/useSessionStore";
 
 export function LoginPage() {
@@ -121,10 +121,25 @@ export function LoginPage() {
         type="submit"
         className="btn btn-primary"
         disabled={busy || !identifier.trim() || !password}
-        style={{ width: "100%", marginBottom: 0 }}
+        style={{ width: "100%", marginBottom: 12 }}
       >
         {busy ? "Signing in..." : "Sign In"}
       </button>
+
+      <div style={{ textAlign: "center" }}>
+        <Link
+          to="/forgot-password"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--font-size-caption)",
+            color: "var(--muted)",
+            textDecoration: "underline",
+            textUnderlineOffset: 2,
+          }}
+        >
+          Forgot Password?
+        </Link>
+      </div>
     </form>
   );
 }

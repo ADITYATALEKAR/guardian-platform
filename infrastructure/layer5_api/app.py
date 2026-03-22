@@ -97,6 +97,10 @@ class Layer5API:
             self._require_method(method, "POST")
             return self._register_account(request.json_body)
 
+        if path == "/v1/auth/reset-password":
+            self._require_method(method, "POST")
+            return self._reset_password(request.json_body)
+
         if path == "/v1/auth/logout":
             self._require_method(method, "POST")
             token = self._session_token(request)
@@ -395,6 +399,13 @@ class Layer5API:
                 if payload.get("institution_name") is not None
                 else None
             ),
+        )
+
+    def _reset_password(self, body: Dict[str, Any] | None) -> Dict[str, Any]:
+        payload = dict(body or {})
+        return self._admin.reset_password(
+            identifier=str(payload.get("identifier", "")).strip(),
+            new_password=str(payload.get("new_password", "")),
         )
 
     def _register_operator(self, request: APIRequest) -> Dict[str, Any]:

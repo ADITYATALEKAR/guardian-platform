@@ -104,12 +104,16 @@ export function AuthLayout() {
           </div>
 
           <div className="auth-layout__story-footer">
+            <div className="auth-layout__footer-contact">
+              <div className="auth-layout__contact-name">Aditya Talekar</div>
+              <div className="auth-layout__contact-role">Founder, Fundamental Labs</div>
+              <div className="auth-layout__contact-detail">aditya.a.talekar@gmail.com</div>
+              <div className="auth-layout__contact-detail">+91 96739 04714</div>
+            </div>
             <div className="auth-layout__footer-links">
-              <a href="#terms">Terms of Use</a>
+              <Link to="/terms">Terms of Use</Link>
               <span className="auth-layout__footer-sep">|</span>
-              <a href="#privacy">Privacy Policy</a>
-              <span className="auth-layout__footer-sep">|</span>
-              <a href="#contact">Contact</a>
+              <Link to="/privacy">Privacy Policy</Link>
             </div>
           </div>
         </section>
@@ -143,8 +147,7 @@ export function AuthLayout() {
               Use limited to authorized security operations.
             </div>
             <div className="auth-layout__footer-copyright">
-              &copy; 2025 Guardian, a product of Fundamental Labs. All rights
-              reserved.
+              &copy; 2025 Guardian, a product of Fundamental Labs. All rights reserved.
             </div>
           </div>
         </aside>

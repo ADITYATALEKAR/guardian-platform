@@ -206,6 +206,38 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(224, 224, 224, 0.28);
+  white-space: nowrap;
+}
+
+/* Contact info block */
+.auth-layout__footer-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 10px;
+  padding-top: 8px;
+}
+
+.auth-layout__contact-name {
+  font-family: var(--font-primary);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(224, 224, 224, 0.52);
+}
+
+.auth-layout__contact-role {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(224, 224, 224, 0.32);
+}
+
+.auth-layout__contact-detail {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(224, 224, 224, 0.4);
+  letter-spacing: 0.04em;
 }
 
 /* ================================================================

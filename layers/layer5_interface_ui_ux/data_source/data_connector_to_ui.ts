@@ -77,6 +77,15 @@ export class Layer5ApiConnector {
     });
   }
 
+  async resetPassword(identifier: string, newPassword: string): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>("POST", "/v1/auth/reset-password", {
+      body: {
+        identifier: String(identifier || "").trim(),
+        new_password: String(newPassword || ""),
+      },
+    });
+  }
+
   async logout(sessionToken: string): Promise<Record<string, unknown>> {
     return this.request<Record<string, unknown>>("POST", "/v1/auth/logout", {
       sessionToken,

@@ -199,6 +199,22 @@ class OperatorAdminAdapter:
             self._raise_mapped(exc)
         raise APIError(500, "internal_error", "internal server error")
 
+    def reset_password(
+        self,
+        *,
+        identifier: str,
+        new_password: str,
+    ) -> Dict[str, Any]:
+        service = self._require_service()
+        try:
+            return service.reset_password_by_identifier(
+                identifier=identifier,
+                new_password=new_password,
+            )
+        except Exception as exc:
+            self._raise_mapped(exc)
+        raise APIError(500, "internal_error", "internal server error")
+
     def list_users(
         self,
         *,

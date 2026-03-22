@@ -36,11 +36,11 @@ class ExpansionConfig:
     max_dns_recursion: int = 3
     max_spf_recursion: int = 5
     max_results: int = 10_000
-    category_a_time_budget_seconds: int = 300
-    bcde_time_budget_seconds: int = 300
-    exploration_budget_seconds: int = 600
-    exploitation_budget_seconds: int = 600
-    module_time_slice_seconds: int = 60
+    category_a_time_budget_seconds: int = 150
+    bcde_time_budget_seconds: int = 150
+    exploration_budget_seconds: int = 300
+    exploitation_budget_seconds: int = 300
+    module_time_slice_seconds: int = 30
     tls_verification_mode: str = "strict"
 
 

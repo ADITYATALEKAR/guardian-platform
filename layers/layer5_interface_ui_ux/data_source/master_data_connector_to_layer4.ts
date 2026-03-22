@@ -169,6 +169,10 @@ export class Layer5DataSource {
     return this.connector.registerAccount(payload);
   }
 
+  async resetPassword(identifier: string, newPassword: string): Promise<Record<string, unknown>> {
+    return this.connector.resetPassword(identifier, newPassword);
+  }
+
   async logout(): Promise<void> {
     const session = this.session;
     this.session = null;

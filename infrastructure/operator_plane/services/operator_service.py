@@ -62,12 +62,12 @@ class OperatorService:
         discovery_max_dns_recursion: int = 5,
         discovery_max_spf_recursion: int = 5,
         discovery_max_ct_calls_per_cycle: int = 5,
-        discovery_category_a_time_budget_seconds: int = 300,
-        discovery_bcde_time_budget_seconds: int = 300,
-        cycle_time_budget_seconds: int = 1_200,
-        discovery_exploration_budget_seconds: int = 600,
-        discovery_exploitation_budget_seconds: int = 600,
-        discovery_module_time_slice_seconds: int = 60,
+        discovery_category_a_time_budget_seconds: int = 150,
+        discovery_bcde_time_budget_seconds: int = 150,
+        cycle_time_budget_seconds: int = 600,
+        discovery_exploration_budget_seconds: int = 300,
+        discovery_exploitation_budget_seconds: int = 300,
+        discovery_module_time_slice_seconds: int = 30,
         allow_insecure_tls: bool = False,
         scheduler_cadence_seconds: int = 7_200,
         scheduler_tick_seconds: int = 5,
@@ -981,6 +981,35 @@ class OperatorService:
             str(new_password),
         )
         return {"operator_id": operator_id, "password_changed": True}
+
+    def reset_password_by_identifier(
+        self,
+        *,
+        identifier: str,
+        new_password: str,
+    ) -> Dict[str, Any]:
+        ident = str(identifier or "").strip()
+        if not ident:
+            raise RuntimeError("identifier required")
+        if not str(new_password or ""):
+            raise RuntimeError("new password required")
+        operators = list_operators(self._operator_storage_root)
+        resolved_id = None
+        for oid, op in operators.items():
+            if oid == ident:
+                resolved_id = oid
+                break
+            if str(op.get("email", "")).strip().lower() == ident.lower():
+                resolved_id = oid
+                break
+        if resolved_id is None:
+            raise RuntimeError("operator not found")
+        _ = update_operator_password(
+            self._operator_storage_root,
+            resolved_id,
+            str(new_password),
+        )
+        return {"operator_id": resolved_id, "password_reset": True}
 
     def _snapshot_operator_sessions(self, operator_id: str) -> Dict[str, Dict[str, Any]]:
         from pathlib import Path
