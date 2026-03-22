@@ -264,6 +264,9 @@ class TenantLifecycleManager:
         config["onboarding_status"] = self.ONBOARDING_PENDING
         config["onboarded_at_unix_ms"] = existing_onboarded_at
         self._write_tenant_config(tenant_id, config)
+        # Also persist seed endpoints to the dedicated table used by the orchestrator.
+        if callable(getattr(self.storage, "save_seed_endpoints", None)):
+            self.storage.save_seed_endpoints(tenant_id, canonical)
 
     def mark_tenant_onboarding_completed(self, tenant_id: str) -> None:
         """
@@ -415,6 +418,22 @@ class TenantLifecycleManager:
         }
 
     def _load_tenant_config(self, tenant_id: str) -> Dict[str, Any]:
+        # In Postgres mode the storage manager owns tenant_config persistence.
+        if callable(getattr(self.storage, "load_tenant_config", None)):
+            result = self.storage.load_tenant_config(tenant_id)
+            if result:
+                return result
+            return {
+                "schema_version": self.CONFIG_SCHEMA_VERSION,
+                "tenant_id": tenant_id,
+                "name": "",
+                "main_url": "",
+                "seed_endpoints": [],
+                "onboarding_status": self.ONBOARDING_PENDING,
+                "onboarded_at_unix_ms": None,
+                "registered_at_unix_ms": int(time.time() * 1000),
+                "registration_meta": {"source": "tenant_lifecycle_manager"},
+            }
         path = self._tenant_config_path(tenant_id)
         if not path.exists():
             return {
@@ -434,6 +453,10 @@ class TenantLifecycleManager:
             return json.load(f)
 
     def _write_tenant_config(self, tenant_id: str, config: Dict[str, Any]) -> None:
+        # In Postgres mode, delegate to the storage manager.
+        if callable(getattr(self.storage, "save_tenant_config", None)):
+            self.storage.save_tenant_config(tenant_id, config)
+            return
         path = self._tenant_config_path(tenant_id)
         path.parent.mkdir(parents=True, exist_ok=True)
 
