@@ -22,6 +22,7 @@ from infrastructure.discovery.expansion_category_bcde import (
     BCDEExpansionContext,
     extract_bcde_candidates,
 )
+from infrastructure.unified_discovery_v2.models import CycleBudgetExceeded
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +154,8 @@ class ExpansionWrapper:
                     )
                 else:
                     remaining_exploitation = max(0, remaining_exploitation - spent_seconds)
+        except CycleBudgetExceeded:
+            raise
         except Exception as exc:
             logger.error(
                 "[ExpansionWrapper] Two-phase expansion failed for '%s': %s",

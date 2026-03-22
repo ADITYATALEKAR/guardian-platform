@@ -212,6 +212,7 @@ from infrastructure.discovery.browser_fallback import (
     browser_request,
     should_attempt_browser_fallback,
 )
+from infrastructure.unified_discovery_v2.models import CycleBudgetExceeded
 
 # FIX-07: EdgeType alias used by ControlledRecursiveExpansionModule — top-level import.
 from infrastructure.discovery.expansion_a.impl import EdgeType as AEdgeType  # noqa: F811 (re-export ok)
@@ -4088,6 +4089,8 @@ class ExpansionCategoryBCDE:
                         loop_completed = False
                         break
 
+                except CycleBudgetExceeded:
+                    raise
                 except Exception as e:
                     logger.error(f"BCDE Module {module_name} failed: {e}", exc_info=True)
                     _observe_module(

@@ -805,6 +805,15 @@ class UnifiedCycleOrchestrator:
             p_raw = _partial.get("raw_observations")
             p_reporting = _partial.get("reporting_metrics")
 
+            # If budget fired mid-discovery (before _partial was set), retrieve
+            # whatever the engine accumulated before the exception.
+            if p_raw is None:
+                try:
+                    p_raw = self.discovery_engine.get_last_raw_results()
+                    p_reporting = self.discovery_engine.get_last_reporting_metrics()
+                except Exception:
+                    pass
+
             if p_snapshot is None and p_raw is not None:
                 # Discovery completed but snapshot not yet built — build it now.
                 try:

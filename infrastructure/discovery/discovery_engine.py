@@ -248,9 +248,18 @@ class DiscoveryEngine:
             "discovered_surface": [],
             "expansion_summary": {},
         }
+        self._last_raw_results: List[object] = []
 
     def get_last_reporting_metrics(self) -> Dict[str, Any]:
         return dict(self._last_reporting_metrics)
+
+    def get_last_raw_results(self) -> List[object]:
+        """Return whatever raw observations were collected in the last run.
+
+        Safe to call even if run_discovery raised CycleBudgetExceeded — returns
+        whatever was accumulated before the budget was exhausted.
+        """
+        return list(self._last_raw_results)
 
     # ==========================================================
     # PUBLIC ENTRYPOINT
@@ -946,6 +955,8 @@ class DiscoveryEngine:
                                 _turn_progress if wrapper_supports_turn_progress else None
                             ),
                         )
+                    except CycleBudgetExceeded:
+                        raise
                     except Exception as exc:
                         turn_result = {
                             "phase": phase_name,
@@ -1688,7 +1699,8 @@ class DiscoveryEngine:
             work_queue.put(ep)
 
         seen_endpoints: Set[str] = set(capped_roots)
-        raw_results: List[object] = []
+        self._last_raw_results = []
+        raw_results: List[object] = self._last_raw_results
         sequence_counter = 0
         successful_observations = 0
         failed_observations = 0
