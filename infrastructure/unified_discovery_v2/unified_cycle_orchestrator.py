@@ -7,6 +7,11 @@ import logging
 from dataclasses import asdict, is_dataclass
 from typing import Dict, Any, List, Sequence, Optional, TYPE_CHECKING
 
+
+class _CycleBudgetExceeded(Exception):
+    """Raised when cycle time budget is exhausted. Triggers graceful partial save."""
+    pass
+
 from .models import (
     CycleMetadata,
     CycleStatus,
@@ -257,9 +262,21 @@ class UnifiedCycleOrchestrator:
 
         rate_controller = RateController()
 
+        # Partial-result holders — populated as the cycle progresses so that
+        # a budget-exceeded path can still persist whatever was discovered.
+        _partial: Dict[str, Any] = {
+            "raw_observations": None,
+            "snapshot": None,
+            "diff": None,
+            "build_stats": None,
+            "updated_temporal_state": None,
+            "baseline_store": None,
+            "reporting_metrics": None,
+        }
+
         def _enforce_cycle_budget(stage_name: str) -> None:
             if int(time.time() * 1000) > cycle_deadline_unix_ms:
-                raise RuntimeError(f"cycle time budget exceeded during {stage_name}")
+                raise _CycleBudgetExceeded(f"cycle time budget exceeded during {stage_name}")
 
         try:
             _set_cycle_stage("initializing")
@@ -361,6 +378,8 @@ class UnifiedCycleOrchestrator:
                 cycle_deadline_unix_ms=cycle_deadline_unix_ms,
             )
             reporting_metrics = self.discovery_engine.get_last_reporting_metrics()
+            _partial["raw_observations"] = raw_observations
+            _partial["reporting_metrics"] = reporting_metrics
             _enforce_cycle_budget("discovery")
 
             # =====================================================
@@ -379,6 +398,9 @@ class UnifiedCycleOrchestrator:
                 previous_temporal_state=previous_temporal,
                 reporting_metrics=reporting_metrics,
             )
+            _partial["snapshot"] = snapshot
+            _partial["diff"] = diff
+            _partial["build_stats"] = build_stats
             _set_cycle_progress(
                 snapshot_endpoint_count=int(snapshot.endpoint_count),
                 new_endpoint_count=int(len(diff.new_endpoints)),
@@ -431,6 +453,8 @@ class UnifiedCycleOrchestrator:
                 current_snapshot=snapshot,
                 previous_state=previous_temporal,
             )
+            _partial["updated_temporal_state"] = updated_temporal_state
+            _partial["baseline_store"] = baseline_store
 
             # =====================================================
             # TELEMETRY → GROUP FINGERPRINTS
@@ -766,6 +790,157 @@ class UnifiedCycleOrchestrator:
                 diff=diff,
                 rate_controller_stats=rate_stats,
                 build_stats=build_stats,
+            )
+
+        except _CycleBudgetExceeded:
+            # Budget exhausted — save whatever partial results exist so
+            # discovered endpoints are not lost, then complete gracefully.
+            duration_ms = int(time.time() * 1000) - cycle_start_time
+            cycle_end_time = int(time.time() * 1000)
+            rate_stats = rate_controller.finalize()
+
+            p_snapshot = _partial.get("snapshot")
+            p_diff = _partial.get("diff")
+            p_build_stats = _partial.get("build_stats")
+            p_temporal = _partial.get("updated_temporal_state")
+            p_baseline = _partial.get("baseline_store")
+            p_raw = _partial.get("raw_observations")
+            p_reporting = _partial.get("reporting_metrics")
+
+            if p_snapshot is None and p_raw is not None:
+                # Discovery completed but snapshot not yet built — build it now.
+                try:
+                    previous_temporal = self.storage.load_temporal_state(tenant_id)
+                    p_snapshot, p_diff, p_build_stats = self.snapshot_builder.build_snapshot(
+                        cycle_id=resolved_cycle_id,
+                        cycle_number=resolved_cycle_number,
+                        raw_observations=p_raw,
+                        previous_snapshot=previous_snapshot_dict,
+                        previous_temporal_state=previous_temporal,
+                        reporting_metrics=p_reporting or {},
+                    )
+                    if p_temporal is None:
+                        p_temporal = self.temporal_engine.update_state(
+                            current_snapshot=p_snapshot,
+                            previous_state=previous_temporal,
+                        )
+                except Exception:
+                    pass
+
+            if p_snapshot is None:
+                # Nothing discovered at all — treat as a real failure.
+                duration_ms = int(time.time() * 1000) - cycle_start_time
+                cycle_end_time = int(time.time() * 1000)
+                failure_class = "scan"
+                failed_meta = CycleMetadata(
+                    schema_version=self.SCHEMA_VERSION,
+                    cycle_id=resolved_cycle_id,
+                    cycle_number=resolved_cycle_number,
+                    timestamp_unix_ms=cycle_start_time,
+                    duration_ms=duration_ms,
+                    status=CycleStatus.FAILED,
+                    endpoints_scanned=0,
+                    new_endpoints=0,
+                    removed_endpoints=0,
+                    snapshot_hash="",
+                    rate_limited_events=rate_stats.rate_limited,
+                    error_messages=["budget_exhausted_before_discovery"],
+                )
+                _set_cycle_stage("failed")
+                failed_meta_payload = dict(failed_meta.__dict__)
+                failed_meta_payload["failure_class"] = failure_class
+                failed_meta_payload["runtime_summary"] = self._build_runtime_summary(
+                    stage_history=stage_history,
+                    cycle_start_time=cycle_start_time,
+                    cycle_deadline_unix_ms=cycle_deadline_unix_ms,
+                    cycle_end_time=cycle_end_time,
+                    cycle_time_budget_seconds=self.cycle_time_budget_seconds,
+                    progress_snapshot=_current_progress_snapshot(),
+                    status="failed",
+                )
+                failed_meta_payload["progress_channel_degraded"] = bool(
+                    progress_channel_state["progress_channel_degraded"]
+                )
+                failed_meta_payload["lock_write_warning_count"] = int(
+                    progress_channel_state["lock_write_warning_count"]
+                )
+                self.storage.append_cycle_metadata(tenant_id, failed_meta_payload)
+                raise RuntimeError("cycle time budget exhausted before discovery completed")
+
+            # Persist partial snapshot so endpoints are not lost.
+            try:
+                snap_payload = p_snapshot.to_dict()
+                if p_reporting and isinstance(p_reporting.get("discovered_surface"), list):
+                    snap_payload["discovered_surface"] = list(p_reporting["discovered_surface"])
+                    snap_payload["discovered_surface_count"] = len(p_reporting["discovered_surface"])
+                self.storage.save_snapshot(tenant_id, snap_payload)
+            except Exception:
+                pass
+            try:
+                if p_temporal is not None:
+                    self.storage.save_temporal_state(
+                        tenant_id, p_temporal.to_dict(), cycle_id=resolved_cycle_id
+                    )
+            except Exception:
+                pass
+            try:
+                if p_baseline is not None:
+                    self.storage.save_layer0_baseline(
+                        tenant_id, serialize_baseline_store(p_baseline.snapshot())
+                    )
+            except Exception:
+                pass
+
+            endpoints_scanned = int(p_build_stats.endpoints_canonical) if p_build_stats else 0
+            new_ep = len(p_diff.new_endpoints) if p_diff else 0
+            removed_ep = len(p_diff.removed_endpoints) if p_diff else 0
+            snap_hash = p_snapshot.snapshot_hash_sha256 if p_snapshot else ""
+
+            _set_cycle_stage("completed")
+            completed_meta = CycleMetadata(
+                schema_version=self.SCHEMA_VERSION,
+                cycle_id=resolved_cycle_id,
+                cycle_number=resolved_cycle_number,
+                timestamp_unix_ms=cycle_start_time,
+                duration_ms=duration_ms,
+                status=CycleStatus.COMPLETED,
+                endpoints_scanned=endpoints_scanned,
+                new_endpoints=new_ep,
+                removed_endpoints=removed_ep,
+                snapshot_hash=snap_hash,
+                rate_limited_events=rate_stats.rate_limited,
+                error_messages=["budget_exhausted"],
+            )
+            runtime_summary = self._build_runtime_summary(
+                stage_history=stage_history,
+                cycle_start_time=cycle_start_time,
+                cycle_deadline_unix_ms=cycle_deadline_unix_ms,
+                cycle_end_time=cycle_end_time,
+                cycle_time_budget_seconds=self.cycle_time_budget_seconds,
+                progress_snapshot=_current_progress_snapshot(),
+                status="completed",
+            )
+            completed_meta_payload = dict(completed_meta.__dict__)
+            completed_meta_payload["budget_exhausted"] = True
+            completed_meta_payload["rate_controller_stats"] = (
+                asdict(rate_stats) if is_dataclass(rate_stats) else {}
+            )
+            completed_meta_payload["runtime_summary"] = runtime_summary
+            completed_meta_payload["progress_channel_degraded"] = bool(
+                progress_channel_state["progress_channel_degraded"]
+            )
+            completed_meta_payload["lock_write_warning_count"] = int(
+                progress_channel_state["lock_write_warning_count"]
+            )
+            self.storage.append_cycle_metadata(tenant_id, completed_meta_payload)
+
+            return CycleResult(
+                metadata=completed_meta,
+                snapshot=p_snapshot,
+                previous_snapshot_hash=previous_snapshot_hash,
+                diff=p_diff,
+                rate_controller_stats=rate_stats,
+                build_stats=p_build_stats,
             )
 
         except Exception as e:
