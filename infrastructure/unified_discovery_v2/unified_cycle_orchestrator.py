@@ -1230,10 +1230,19 @@ class UnifiedCycleOrchestrator:
         tls_findings = [item for item in tls_findings if isinstance(item, dict)]
         waf_findings = [item for item in waf_findings if isinstance(item, dict)]
 
-        crypto_health_score = max(0.0, min(100.0, float(scores.get("cryptographic_health_score", 0) or 0)))
-        protection_posture_score = max(0.0, min(100.0, float(scores.get("protection_posture_score", 0) or 0)))
-        crypto_risk = 1.0 - (crypto_health_score / 100.0)
-        protection_risk = 1.0 - (protection_posture_score / 100.0)
+        # Use sentinel -1 to distinguish "no score available" from a real score of 0.
+        raw_crypto = scores.get("cryptographic_health_score")
+        raw_protection = scores.get("protection_posture_score")
+        crypto_observed = raw_crypto is not None and raw_crypto != 0
+        protection_observed = raw_protection is not None and raw_protection != 0
+
+        crypto_health_score = max(0.0, min(100.0, float(raw_crypto or 0)))
+        protection_posture_score = max(0.0, min(100.0, float(raw_protection or 0)))
+        # Only compute risk from score when we have actual observed data; otherwise
+        # rely solely on explicit findings to avoid false CRITICAL alerts.
+        crypto_risk = (1.0 - crypto_health_score / 100.0) if crypto_observed else 0.0
+        protection_risk = (1.0 - protection_posture_score / 100.0) if protection_observed else 0.0
+
         max_tls_finding_score = max(
             (self._severity_to_score(item.get("severity")) for item in tls_findings),
             default=0.0,
@@ -1246,7 +1255,8 @@ class UnifiedCycleOrchestrator:
 
         signals: List[Dict[str, Any]] = []
         crypto_severity = self._clamp01(max(crypto_risk, max_tls_finding_score))
-        if crypto_severity >= 0.20:
+        # Only emit crypto signal when there is actual evidence (findings or a real observed score).
+        if crypto_severity >= 0.20 and (tls_findings or crypto_observed):
             signals.append(
                 {
                     "entity_id": entity_id,
@@ -1255,7 +1265,7 @@ class UnifiedCycleOrchestrator:
                     "weakness_id": "crypto_posture_v1",
                     "weakness_kind": "crypto_posture",
                     "severity_01": crypto_severity,
-                    "confidence_01": self._clamp01(0.65 + (0.05 * min(len(tls_findings), 4))),
+                    "confidence_01": self._clamp01(0.50 + (0.10 * min(len(tls_findings), 4))),
                     "evidence_refs": [],
                     "metrics": {
                         "cryptographic_health_score": crypto_health_score / 100.0,
@@ -1266,7 +1276,8 @@ class UnifiedCycleOrchestrator:
             )
 
         protection_severity = self._clamp01(max(protection_risk, max_waf_finding_score))
-        if protection_severity >= 0.20:
+        # Only emit protection signal when there is actual evidence.
+        if protection_severity >= 0.20 and (waf_findings or protection_observed):
             signals.append(
                 {
                     "entity_id": entity_id,
@@ -1275,7 +1286,7 @@ class UnifiedCycleOrchestrator:
                     "weakness_id": "protection_posture_v1",
                     "weakness_kind": "protection_posture",
                     "severity_01": protection_severity,
-                    "confidence_01": self._clamp01(0.60 + (0.05 * min(len(waf_findings), 4))),
+                    "confidence_01": self._clamp01(0.45 + (0.10 * min(len(waf_findings), 4))),
                     "evidence_refs": [],
                     "metrics": {
                         "protection_posture_score": protection_posture_score / 100.0,
@@ -1337,7 +1348,7 @@ class UnifiedCycleOrchestrator:
                     ),
                     "severity_01": self._clamp01(weakness.get("severity_01", 0.0)),
                     "confidence_01": self._clamp01(
-                        max(0.70, float(weakness.get("confidence_01", 0.0) or 0.0))
+                        float(weakness.get("confidence_01", 0.0) or 0.0)
                     ),
                     "horizon_days": 7,
                     "metrics": metrics,
