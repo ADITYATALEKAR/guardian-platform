@@ -353,7 +353,13 @@ class TenantLifecycleManager:
                     creds_path.unlink()
         except Exception:
             pass
-        # Remove all tenant storage (cascades snapshots, configs, etc.).
+        # Force-release any cycle lock so delete_tenant won't block.
+        try:
+            if callable(getattr(self.storage, "release_cycle_lock", None)):
+                self.storage.release_cycle_lock(tenant_id)
+        except Exception:
+            pass
+        # Remove all tenant storage (cascades tenant_configs, seed_endpoints, cycle_locks, etc.).
         try:
             if self.storage.tenant_exists(tenant_id):
                 self.storage.delete_tenant(tenant_id)
