@@ -28,7 +28,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY infrastructure/ ./infrastructure/
 COPY layers/ ./layers/
 COPY core_utils/ ./core_utils/
-COPY config/ ./config/
 COPY simulator/ ./simulator/
 
 # Copy built frontend into the serving location

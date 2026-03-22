@@ -28,6 +28,7 @@ temp_*
 # IDE
 .vscode
 .idea
+.claude
 
 # Docs
 *.md
@@ -36,5 +37,23 @@ all_tree.txt
 layer5_frontend_all_files.txt
 layer5_frontend_src_all_files.txt
 
-# Tests (optional, exclude to reduce image)
+# Tests (not needed in production image)
 tests/
+
+# Config (empty dir)
+config/
+
+# Virtual environments
+.venv*
+venv*
+
+# Root-level node artifacts
+package.json
+package-lock.json
+postcss.config.js
+
+# Scripts
+scripts/
+
+# Render/deploy config
+render.yaml
