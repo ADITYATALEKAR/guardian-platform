@@ -313,7 +313,7 @@ export class Layer5ApiConnector {
     return this.request<Record<string, unknown>>(
       "GET",
       `/v1/tenants/${encodeURIComponent(tenantId)}/cycles/${encodeURIComponent(cycleId)}/bundle`,
-      { sessionToken },
+      { sessionToken, timeoutMs: 60000 },
     );
   }
 
@@ -428,7 +428,7 @@ export class Layer5ApiConnector {
     options?: Layer5RequestOptions,
   ): Promise<T> {
     const controller = new AbortController();
-    const timeoutMs = options?.timeoutMs ?? 15000;
+    const timeoutMs = options?.timeoutMs ?? 30000;
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const url = this.buildUrl(path, options?.query);
