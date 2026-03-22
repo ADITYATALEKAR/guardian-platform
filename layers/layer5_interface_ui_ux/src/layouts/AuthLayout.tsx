@@ -104,16 +104,18 @@ export function AuthLayout() {
           </div>
 
           <div className="auth-layout__story-footer">
-            <div className="auth-layout__footer-contact">
-              <div className="auth-layout__contact-name">Aditya Talekar</div>
-              <div className="auth-layout__contact-role">Founder, Fundamental Labs</div>
-              <div className="auth-layout__contact-detail">aditya.a.talekar@gmail.com</div>
-              <div className="auth-layout__contact-detail">+91 96739 04714</div>
-            </div>
             <div className="auth-layout__footer-links">
               <Link to="/terms">Terms of Use</Link>
               <span className="auth-layout__footer-sep">|</span>
               <Link to="/privacy">Privacy Policy</Link>
+              <span className="auth-layout__footer-sep">|</span>
+              <a href="#contact" className="auth-layout__contact-link">Contact</a>
+            </div>
+            <div className="auth-layout__footer-contact" id="contact">
+              <div className="auth-layout__contact-name">Aditya Talekar</div>
+              <div className="auth-layout__contact-role">Founder, Fundamental Labs</div>
+              <div className="auth-layout__contact-detail">aditya.a.talekar@gmail.com</div>
+              <div className="auth-layout__contact-detail">+91 96739 04714</div>
             </div>
           </div>
         </section>
