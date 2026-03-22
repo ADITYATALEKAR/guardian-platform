@@ -924,6 +924,12 @@ class OperatorService:
 
         linked_tenants = list_tenants(self._operator_storage_root, operator_id)
         self.delete_operator(operator_id)
+        # Also purge the tenant and all its data so the same email can re-register cleanly.
+        for tenant_id in linked_tenants:
+            try:
+                self._tenant_lifecycle.purge_tenant(tenant_id)
+            except Exception:
+                pass
         return {
             "deleted": True,
             "operator_id": operator_id,

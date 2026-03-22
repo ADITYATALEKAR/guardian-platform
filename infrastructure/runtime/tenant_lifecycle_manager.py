@@ -334,6 +334,40 @@ class TenantLifecycleManager:
             "reset": True,
         }
 
+    def purge_tenant(self, tenant_id: str) -> None:
+        """
+        Fully removes a tenant and all associated data.
+
+        Used when an account is deleted so the same email can re-register
+        with a clean slate. Also removes tenant identity credentials.
+        """
+        self._validate_tenant_id(tenant_id)
+        # Remove identity credentials directly (no password check needed for purge).
+        try:
+            if callable(getattr(self.storage, "delete_identity_credentials", None)):
+                self.storage.delete_identity_credentials(tenant_id)
+            elif self.identity.has_tenant(tenant_id):
+                # Filesystem identity manager: remove the credentials file directly.
+                creds_path = self.identity._credentials_path(tenant_id)
+                if creds_path.exists():
+                    creds_path.unlink()
+        except Exception:
+            pass
+        # Remove all tenant storage (cascades snapshots, configs, etc.).
+        try:
+            if self.storage.tenant_exists(tenant_id):
+                self.storage.delete_tenant(tenant_id)
+        except Exception:
+            pass
+        # Remove simulation storage.
+        try:
+            sim_path = self.simulation_storage.tenants_dir / tenant_id
+            if sim_path.exists():
+                import shutil
+                shutil.rmtree(sim_path)
+        except Exception:
+            pass
+
     # ============================================================
     # INTERNAL
     # ============================================================
