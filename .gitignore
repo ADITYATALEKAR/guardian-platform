@@ -11,12 +11,12 @@ venv*/
 node_modules/
 layers/layer5_interface_ui_ux/dist/
 
-# Runtime data
-storage/
-operator_storage/
-simulation_storage/
-real_test_storage/
-runtime/
+# Runtime data (root-level only)
+/storage/
+/operator_storage/
+/simulation_storage/
+/real_test_storage/
+/runtime/
 
 # Logs
 *.log
