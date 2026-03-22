@@ -1,0 +1,20 @@
+{
+  "captured_at_unix_ms": 1772735095532,
+  "cycle_runtime": {
+    "runtime_ms": 1094.81,
+    "status": "completed",
+    "tenant_id": "tenant_a"
+  },
+  "jsonl_storage": {
+    "cycle_id": "cycle_000001",
+    "loaded_records": 1001,
+    "read_ms": 42.189,
+    "records": 1000,
+    "tenant_id": "tenant_a"
+  },
+  "simulation_runtime": {
+    "runtime_ms": 72.954,
+    "simulation_id": "513800471410179dae69850cbf15f550ce42e1064db9d78b979927bc019b81aa",
+    "tenant_id": "tenant_a"
+  }
+}

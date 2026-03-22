@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+layers/layer5_interface_ui_ux/node_modules
+layers/layer5_interface_ui_ux/dist
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+
+# Runtime data (not needed in image)
+storage/
+operator_storage/
+simulation_storage/
+real_test_storage/
+runtime/
+
+# Logs and temp
+*.log
+tmp_*
+temp_*
+
+# IDE
+.vscode
+.idea
+
+# Docs
+*.md
+docs/
+all_tree.txt
+layer5_frontend_all_files.txt
+layer5_frontend_src_all_files.txt
+
+# Tests (optional, exclude to reduce image)
+tests/

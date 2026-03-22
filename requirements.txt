@@ -1,0 +1,3 @@
+# Guardian Platform - Python Dependencies
+# The codebase uses only Python stdlib, but a WSGI server is needed for production.
+gunicorn==23.0.0

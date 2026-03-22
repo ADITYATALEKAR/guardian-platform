@@ -1,0 +1,37 @@
+{
+  "schema_version": "v1",
+  "rules": [
+    {
+      "label": "probe_exploit_attempt",
+      "description": "High volatility with short horizon suggests probing or exploit attempts.",
+      "thresholds": {
+        "volatility_ewma": 0.7
+      },
+      "max_horizon_days": 3
+    },
+    {
+      "label": "sustained_entropy_collection",
+      "description": "Sustained entropy anomaly without structural damage suggests collection behavior.",
+      "thresholds": {
+        "entropy_decay_rate": 0.6,
+        "entropy_zscore": 0.6
+      }
+    },
+    {
+      "label": "system_degradation_pressure",
+      "description": "Correlation surge with fallback pressure suggests degradation attempts.",
+      "thresholds": {
+        "correlation_strength": 0.6,
+        "fallback_frequency": 0.6
+      }
+    },
+    {
+      "label": "configuration_manipulation",
+      "description": "Transition shifts with drift escalation suggest configuration pressure.",
+      "thresholds": {
+        "transition_score": 0.6,
+        "drift_zscore": 0.6
+      }
+    }
+  ]
+}

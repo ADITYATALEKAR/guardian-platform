@@ -1,0 +1,152 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap");
+
+:root {
+  /* ── Core palette ── */
+  --black: #0a0a0a;
+  --off-black: #111111;
+  --panel: #141414;
+  --surface: #1a1a1a;
+  --border: #232323;
+  --dim: #2a2a2a;
+  --muted: #666666;
+  --ghost: #999999;
+  --white: #e0e0e0;
+  --pure: #ffffff;
+
+  /* ── Semantic colors ── */
+  --color-app-bg: var(--black);
+  --color-header-bg: var(--off-black);
+  --color-panel-bg: var(--panel);
+  --color-panel-muted: var(--surface);
+  --color-border: var(--border);
+  --color-text-primary: var(--white);
+  --color-text-secondary: var(--ghost);
+  --color-text-muted: var(--muted);
+
+  /* ── Accent (used sparingly) ── */
+  --color-accent: #2b95d6;
+  --color-success: #2ea043;
+  --color-warning: #d4a017;
+  --color-danger: #da3633;
+
+  /* ── Severity ── */
+  --color-severity-critical: #ee5555;
+  --color-severity-high: #ee9933;
+  --color-severity-medium: #eeaa33;
+  --color-severity-low: #66aa66;
+  --color-severity-unknown: #888888;
+
+  /* ── Quantum ── */
+  --color-quantum-ready: #00c853;
+  --color-quantum-not-ready: #ff6d00;
+  --color-quantum-unknown: #546e7a;
+
+  /* ── Typography ── */
+  --font-primary: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-display: "Syne", sans-serif;
+
+  --font-size-h1: 24px;
+  --font-size-h2: 18px;
+  --font-size-h3: 15px;
+  --font-size-body: 13px;
+  --font-size-secondary: 12px;
+  --font-size-caption: 11px;
+  --font-size-micro: 10px;
+  --font-size-label: 8px;
+
+  /* ── Controls ── */
+  --control-height-small: 28px;
+  --control-height-default: 36px;
+  --control-height-large: 40px;
+
+  /* ── Spacing (4px base) ── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+}
+
+/* ── Base ── */
+html {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  background-color: var(--color-app-bg);
+  color: var(--color-text-primary);
+}
+
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-app-bg);
+  color: var(--color-text-primary);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ── Button base ── */
+.btn {
+  height: var(--control-height-default);
+  padding: 0 14px;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-micro);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: 1px solid var(--dim);
+  background: transparent;
+  color: var(--white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+}
+
+.btn:hover {
+  border-color: var(--ghost);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--pure);
+  border-color: var(--pure);
+  color: var(--black);
+}
+
+.btn-primary:hover {
+  background: var(--white);
+  border-color: var(--white);
+}
+
+.btn-neutral {
+  background: transparent;
+  border-color: var(--dim);
+  color: var(--white);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--pure);
+}
+
+.btn-small {
+  height: var(--control-height-small);
+  padding: 0 10px;
+  font-size: var(--font-size-label);
+}

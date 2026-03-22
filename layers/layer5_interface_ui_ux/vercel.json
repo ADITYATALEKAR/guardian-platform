@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/v1/(.*)", "destination": "/v1/$1" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ]
+}

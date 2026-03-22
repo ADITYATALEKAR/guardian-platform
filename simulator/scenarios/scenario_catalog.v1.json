@@ -1,0 +1,68 @@
+{
+  "schema_version": "v1",
+  "scenarios": [
+    {
+      "id": "compromised_endpoint",
+      "injection_type": "compromised_endpoint",
+      "target_selector": {
+        "entity_id": "<target>"
+      },
+      "injection_payload": {
+        "entropy_score": 0.85,
+        "coherence_score": 0.1,
+        "fallback_ratio": 0.4
+      },
+      "description": "Simulated endpoint compromise with elevated entropy and fallback stress."
+    },
+    {
+      "id": "certificate_compromise",
+      "injection_type": "certificate_compromise",
+      "target_selector": {
+        "entity_id": "<target>"
+      },
+      "injection_payload": {
+        "tls_version": "TLS1.2",
+        "certificate_sha256": "<malicious_hash>",
+        "certificate_expiry_unix_ms": 0
+      },
+      "description": "Simulated certificate compromise / downgrade scenario."
+    },
+    {
+      "id": "coordinated_entropy_spike",
+      "injection_type": "coordinated_entropy_spike",
+      "target_selector": {
+        "all": true
+      },
+      "injection_payload": {
+        "entropy_score": 0.9,
+        "entropy_decay_rate": 0.8
+      },
+      "description": "Simulated coordinated entropy spike across multiple endpoints."
+    },
+    {
+      "id": "structural_lateral_movement",
+      "injection_type": "structural_lateral_movement",
+      "target_selector": {
+        "entity_id": "<target>"
+      },
+      "injection_payload": {
+        "correlation_strength": 0.75,
+        "drift_rate": 0.6
+      },
+      "description": "Simulated lateral movement pressure on adjacent endpoints."
+    },
+    {
+      "id": "persistent_low_signal_exfiltration",
+      "injection_type": "persistent_low_signal_exfiltration",
+      "target_selector": {
+        "entity_id": "<target>"
+      },
+      "injection_payload": {
+        "entropy_score": 0.45,
+        "fallback_ratio": 0.15,
+        "drift_rate": 0.25
+      },
+      "description": "Simulated persistent low-signal exfiltration pattern."
+    }
+  ]
+}

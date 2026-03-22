@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: guardian-platform
+    runtime: docker
+    plan: free
+    envVars:
+      - key: LAYER5_STORAGE_ROOT
+        value: /data/storage
+      - key: LAYER5_OPERATOR_STORAGE_ROOT
+        value: /data/operator_storage
+      - key: LAYER5_SIMULATION_ROOT
+        value: /data/simulation_storage
+      - key: LAYER5_TRUST_FORWARDED_HEADERS
+        value: "true"
+      - key: LAYER5_ALLOWED_ORIGINS
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"

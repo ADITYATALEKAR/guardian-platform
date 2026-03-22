@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv*/
+venv*/
+
+# Node
+node_modules/
+layers/layer5_interface_ui_ux/dist/
+
+# Runtime data
+storage/
+operator_storage/
+simulation_storage/
+real_test_storage/
+runtime/
+
+# Logs
+*.log
+temp_*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Temp files
+tmp_*/
+temp_*/
+
+# Code dump files
+all_tree.txt
+layer5_frontend_all_files.txt
+layer5_frontend_src_all_files.txt
+
+# Claude Code
+.claude/

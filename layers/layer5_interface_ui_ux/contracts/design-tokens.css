@@ -1,0 +1,104 @@
+:root {
+  --black: #080808;
+  --off-black: #0f0f0f;
+  --panel: #111111;
+  --border: #222222;
+  --dim: #2a2a2a;
+  --muted: #555555;
+  --ghost: #aaaaaa;
+  --white: #f5f5f5;
+  --pure: #ffffff;
+
+  --font-primary: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-display: "Syne", sans-serif;
+
+  --font-size-h1: 18px;
+  --font-size-h2: 14px;
+  --font-size-h3: 14px;
+  --font-size-body: 13px;
+  --font-size-secondary: 13px;
+  --font-size-caption: 12px;
+  --font-size-micro: 11px;
+
+  --control-height-small: 30px;
+  --control-height-default: 38px;
+  --control-height-large: 40px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --color-app-bg: var(--black);
+  --color-header-bg: var(--off-black);
+  --color-panel-bg: var(--off-black);
+  --color-panel-muted: var(--panel);
+  --color-border: var(--border);
+  --color-text-primary: var(--white);
+  --color-text-secondary: var(--ghost);
+  --color-text-muted: var(--muted);
+  --color-primary: var(--pure);
+  --color-success: var(--pure);
+  --color-warning: var(--ghost);
+  --color-danger: var(--pure);
+  --color-neutral: var(--ghost);
+
+  --color-alert-critical: var(--pure);
+  --color-alert-high: var(--ghost);
+  --color-alert-medium: var(--muted);
+  --color-alert-low: var(--dim);
+  --color-alert-unknown: #4A5568;
+
+  --color-quantum-ready: #00C853;
+  --color-quantum-not-ready: #FF6D00;
+  --color-quantum-unknown: #546E7A;
+}
+
+.btn {
+  height: var(--control-height-default);
+  padding: 0 12px;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border: 1px solid var(--dim);
+  background: transparent;
+  color: var(--white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--pure);
+  border-color: var(--pure);
+  color: var(--black);
+}
+
+.btn-neutral {
+  background: transparent;
+  border-color: var(--dim);
+  color: var(--white);
+}
+
+.btn-success {
+  background: var(--pure);
+  border-color: var(--pure);
+  color: var(--black);
+}
+
+.btn-warning {
+  background: var(--panel);
+  border-color: var(--dim);
+  color: var(--white);
+}
+
+.btn-danger {
+  background: var(--pure);
+  border-color: var(--pure);
+  color: var(--black);
+}
