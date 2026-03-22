@@ -11,7 +11,6 @@ from infrastructure.layer5_api.app import Layer5API
 from infrastructure.operator_plane.services.operator_service import OperatorService
 from infrastructure.runtime.engine_runtime import EngineRuntime
 from infrastructure.runtime.health import HealthState
-from infrastructure.runtime.tenant_lifecycle_manager import TenantLifecycleManager
 from infrastructure.storage_manager.identity_manager import IdentityManager
 from infrastructure.storage_manager.storage_manager import StorageManager
 from infrastructure.unified_discovery_v2.snapshot_builder import SnapshotBuilder
@@ -128,16 +127,14 @@ def _seed_admin_from_env(operator_service: "OperatorService") -> None:
         logger.warning("guardian_seed_admin: could not check tenant list: %s", exc)
         return
 
-    # Operator exists but workspace was wiped — re-create with deterministic tenant ID.
+    # Operator exists but workspace was wiped — re-create with a fresh random tenant ID.
     try:
-        deterministic_tenant_id = TenantLifecycleManager.derive_tenant_id_from_operator(operator_id)
         operator_service.create_workspace(
             operator_id=operator_id,
             institution_name=institution_name or local.replace(".", " ").title() or "Workspace",
         )
         logger.info(
-            "guardian_seed_admin: re-created workspace tenant_id=%s email=%s",
-            deterministic_tenant_id,
+            "guardian_seed_admin: re-created workspace email=%s",
             email,
         )
     except Exception as exc:

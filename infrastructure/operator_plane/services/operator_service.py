@@ -225,11 +225,10 @@ class OperatorService:
             raise ValueError("institution_name cannot be empty")
 
         tenant_password = self._generate_tenant_password()
-        deterministic_tenant_id = TenantLifecycleManager.derive_tenant_id_from_operator(operator_id)
+        # Use a random tenant_id so re-registering with the same email gets a clean slate.
         tenant_id = self._tenant_lifecycle.register_pending_tenant(
             name=institution_name,
             password=tenant_password,
-            tenant_id=deterministic_tenant_id,
         )
         try:
             add_link(self._operator_storage_root, operator_id, tenant_id)
