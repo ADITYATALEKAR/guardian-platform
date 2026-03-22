@@ -116,7 +116,7 @@ export function AuthLayout() {
                 onClick={() => setShowContact(!showContact)}
                 className="auth-layout__contact-link"
               >
-                Contact
+                CONTACT
               </button>
             </div>
             {showContact && (
