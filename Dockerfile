@@ -1,4 +1,5 @@
 # ---- Stage 1: Build frontend ----
+# Build revision: 2
 FROM node:20-alpine AS frontend-build
 
 WORKDIR /app/frontend
@@ -31,7 +32,7 @@ COPY core_utils/ ./core_utils/
 COPY simulator/ ./simulator/
 
 # Copy built frontend into the serving location
-COPY --from=frontend-build /app/frontend/dist ./layers/layer5_interface_ui_ux/dist
+COPY --from=frontend-build /app/frontend/dist/ ./layers/layer5_interface_ui_ux/dist/
 
 # Create runtime directories
 RUN mkdir -p /data/storage /data/operator_storage /data/simulation_storage
@@ -40,7 +41,7 @@ RUN mkdir -p /data/storage /data/operator_storage /data/simulation_storage
 ENV LAYER5_STORAGE_ROOT=/data/storage
 ENV LAYER5_OPERATOR_STORAGE_ROOT=/data/operator_storage
 ENV LAYER5_SIMULATION_ROOT=/data/simulation_storage
-ENV LAYER5_ALLOWED_ORIGINS=""
+ENV LAYER5_ALLOWED_ORIGINS="https://guardian-platform.onrender.com"
 ENV LAYER5_TRUST_FORWARDED_HEADERS=true
 ENV PYTHONUNBUFFERED=1
 

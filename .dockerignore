@@ -13,12 +13,12 @@ __pycache__
 *.pyo
 .pytest_cache
 
-# Runtime data (not needed in image)
-storage/
-operator_storage/
-simulation_storage/
-real_test_storage/
-runtime/
+# Runtime data (root-level only, not needed in image)
+/storage/
+/operator_storage/
+/simulation_storage/
+/real_test_storage/
+/runtime/
 
 # Logs and temp
 *.log

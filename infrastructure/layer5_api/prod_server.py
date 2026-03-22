@@ -221,8 +221,8 @@ def build_layer5_wsgi_application(
             start_response(_status_line(204), headers)
             return [b""]
 
-        # API routes: /v1/*
-        if path.startswith("/v1/"):
+        # API routes: /v1/*, /health, /ready
+        if path.startswith("/v1/") or path in ("/health", "/ready"):
             try:
                 headers = _request_headers(
                     environ,
