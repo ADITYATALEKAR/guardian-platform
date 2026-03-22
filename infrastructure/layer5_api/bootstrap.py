@@ -90,6 +90,15 @@ def _seed_admin_from_env(operator_service: "OperatorService") -> None:
     digest = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:6]
     operator_id = f"usr_{safe}_{digest}"
 
+    # Check if the admin account was intentionally deleted — don't revive it.
+    try:
+        from infrastructure.db.connection import use_postgres, get_setting
+        if use_postgres() and get_setting(f"deleted_operator:{operator_id}") == "1":
+            logger.info("guardian_seed_admin: admin account was deleted, skipping seed email=%s", email)
+            return
+    except Exception as exc:
+        logger.warning("guardian_seed_admin: could not check deleted flag: %s", exc)
+
     try:
         # Attempt full registration (operator + workspace).
         operator_service.register_account_with_workspace(

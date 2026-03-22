@@ -713,6 +713,13 @@ class OperatorService:
         _ = get_operator(self._operator_storage_root, operator_id)
         sessions_backup = self._snapshot_operator_sessions(operator_id)
         links_backup = list_tenants(self._operator_storage_root, operator_id)
+        # Record intentional deletion so _seed_admin_from_env won't recreate this account.
+        try:
+            from infrastructure.db.connection import use_postgres, set_setting
+            if use_postgres():
+                set_setting(f"deleted_operator:{operator_id}", "1")
+        except Exception:
+            pass
 
         revoked_tokens: List[str] = []
         links_removed = False
@@ -1022,8 +1029,13 @@ class OperatorService:
         return {"operator_id": resolved_id, "password_reset": True}
 
     def _snapshot_operator_sessions(self, operator_id: str) -> Dict[str, Dict[str, Any]]:
-        from pathlib import Path
+        from infrastructure.db.connection import use_postgres
+        if use_postgres():
+            # In Postgres mode, sessions are deleted via ON DELETE CASCADE when the
+            # operator row is removed. No need to enumerate them manually.
+            return {}
 
+        from pathlib import Path
         sessions_dir = Path(self._operator_storage_root) / "sessions"
         if not sessions_dir.exists():
             return {}

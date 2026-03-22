@@ -150,6 +150,12 @@ CREATE TABLE IF NOT EXISTS fingerprints (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (tenant_id, entity_id)
 );
+
+CREATE TABLE IF NOT EXISTS guardian_settings (
+    key         TEXT PRIMARY KEY,
+    value       TEXT NOT NULL,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 """
 
 
