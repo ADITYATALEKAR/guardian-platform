@@ -16,6 +16,7 @@ from urllib.parse import urlsplit
 
 from infrastructure.discovery.scope_utils import extract_registrable_base
 from infrastructure.storage_manager.storage_manager import StorageManager
+from infrastructure.unified_discovery_v2.models import CycleBudgetExceeded
 from infrastructure.discovery.expansion_wrapper import (
     ExpansionConfig,
     ExpansionWrapper,
@@ -324,7 +325,7 @@ class DiscoveryEngine:
 
         def _assert_cycle_budget(stage_name: str) -> None:
             if int(time.time() * 1000) > effective_cycle_deadline_ms:
-                raise RuntimeError(f"cycle time budget exceeded during {stage_name}")
+                raise CycleBudgetExceeded(f"cycle time budget exceeded during {stage_name}")
 
         def _emit_progress(
             updates: Optional[Dict[str, Any]] = None,

@@ -5,6 +5,11 @@ from typing import Any, List, Dict, Optional
 from enum import Enum
 
 
+class CycleBudgetExceeded(RuntimeError):
+    """Raised when cycle time budget is exhausted. Triggers graceful partial save."""
+    pass
+
+
 # ============================================================
 # ENUMS
 # ============================================================

@@ -8,12 +8,10 @@ from dataclasses import asdict, is_dataclass
 from typing import Dict, Any, List, Sequence, Optional, TYPE_CHECKING
 
 
-class _CycleBudgetExceeded(Exception):
-    """Raised when cycle time budget is exhausted. Triggers graceful partial save."""
-    pass
 
 from .models import (
     CycleMetadata,
+    CycleBudgetExceeded,
     CycleStatus,
     CycleResult,
 )
@@ -276,7 +274,7 @@ class UnifiedCycleOrchestrator:
 
         def _enforce_cycle_budget(stage_name: str) -> None:
             if int(time.time() * 1000) > cycle_deadline_unix_ms:
-                raise _CycleBudgetExceeded(f"cycle time budget exceeded during {stage_name}")
+                raise CycleBudgetExceeded(f"cycle time budget exceeded during {stage_name}")
 
         try:
             _set_cycle_stage("initializing")
@@ -792,7 +790,7 @@ class UnifiedCycleOrchestrator:
                 build_stats=build_stats,
             )
 
-        except _CycleBudgetExceeded:
+        except CycleBudgetExceeded:
             # Budget exhausted — save whatever partial results exist so
             # discovered endpoints are not lost, then complete gracefully.
             duration_ms = int(time.time() * 1000) - cycle_start_time
