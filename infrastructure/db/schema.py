@@ -134,8 +134,19 @@ CREATE TABLE IF NOT EXISTS cycle_locks (
     stage               TEXT,
     pid                 INT,
     hostname            TEXT,
-    status              TEXT NOT NULL DEFAULT 'active'
+    status              TEXT NOT NULL DEFAULT 'active',
+    progress            JSONB NOT NULL DEFAULT '{}'
 );
+
+-- Add progress column if upgrading from earlier schema
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='cycle_locks' AND column_name='progress'
+    ) THEN
+        ALTER TABLE cycle_locks ADD COLUMN progress JSONB NOT NULL DEFAULT '{}';
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS scheduler_states (
     tenant_id   TEXT PRIMARY KEY,

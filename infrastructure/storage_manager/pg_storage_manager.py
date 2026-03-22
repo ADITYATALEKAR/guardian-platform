@@ -1267,7 +1267,9 @@ class PgStorageManager:
             if self._is_stale_lock_row(row_dict):
                 self.release_cycle_lock(tid)
                 return None
-            return {
+            # Merge stored progress payload so all live detail fields are returned.
+            progress = dict(row_dict.get("progress") or {})
+            progress.update({
                 "cycle_id": row_dict.get("cycle_id"),
                 "cycle_number": row_dict.get("cycle_number"),
                 "started_at_unix_ms": row_dict.get("started_at_unix_ms"),
@@ -1275,7 +1277,8 @@ class PgStorageManager:
                 "stage": row_dict.get("stage"),
                 "pid": row_dict.get("pid"),
                 "hostname": row_dict.get("hostname"),
-            }
+            })
+            return progress
         finally:
             put_conn(conn)
 
@@ -1285,20 +1288,22 @@ class PgStorageManager:
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(
-                    "SELECT * FROM cycle_locks WHERE tenant_id = %s", (tid,)
+                    "SELECT stage, progress FROM cycle_locks WHERE tenant_id = %s", (tid,)
                 )
                 row = cur.fetchone()
                 if row is None:
                     raise RuntimeError("Active cycle lock not found")
-                merged = dict(row)
-                merged.update(dict(updates or {}))
+                upd = dict(updates or {})
+                new_stage = str(upd.get("stage") or row["stage"] or "")
+                existing_progress = dict(row["progress"] or {})
+                existing_progress.update(upd)
                 cur.execute(
-                    "UPDATE cycle_locks SET "
-                    "stage = %s, updated_at_unix_ms = %s "
+                    "UPDATE cycle_locks SET stage = %s, updated_at_unix_ms = %s, progress = %s::jsonb "
                     "WHERE tenant_id = %s",
                     (
-                        str(merged.get("stage", "") or ""),
+                        new_stage,
                         self._now(),
+                        json.dumps(existing_progress),
                         tid,
                     ),
                 )

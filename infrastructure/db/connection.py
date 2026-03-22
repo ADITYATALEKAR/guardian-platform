@@ -17,7 +17,7 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
         with _pool_lock:
             if _pool is None:
                 dsn = os.environ["GUARDIAN_DATABASE_URL"]
-                _pool = psycopg2.pool.ThreadedConnectionPool(1, 10, dsn)
+                _pool = psycopg2.pool.ThreadedConnectionPool(2, 20, dsn)
     return _pool
 
 
