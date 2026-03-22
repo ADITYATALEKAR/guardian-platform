@@ -414,8 +414,16 @@ class OperatorService:
             "true" if self._allow_insecure_tls else "false",
         ]
         project_root = Path(__file__).resolve().parents[3]
-        tenant_path = self._storage_manager.get_tenant_path(tenant_id)
-        log_path = tenant_path / "cycle_metadata" / "worker.log"
+        try:
+            tenant_path = self._storage_manager.get_tenant_path(tenant_id)
+            log_dir = tenant_path / "cycle_metadata"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_path = log_dir / "worker.log"
+        except Exception:
+            # Postgres backend: tenant_path is a virtual path that doesn't exist
+            # on the filesystem. Fall back to /tmp for worker log.
+            import tempfile
+            log_path = Path(tempfile.gettempdir()) / f"guardian_worker_{tenant_id}.log"
 
         creation_flags = 0
         for flag_name in ("CREATE_NEW_PROCESS_GROUP", "DETACHED_PROCESS", "CREATE_NO_WINDOW"):
