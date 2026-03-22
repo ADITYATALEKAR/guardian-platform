@@ -169,14 +169,14 @@
   padding-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 12px;
   flex-shrink: 0;
 }
 
 .auth-layout__footer-links {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.16em;
@@ -204,6 +204,7 @@
 
 .auth-layout__footer-sep {
   color: rgba(224, 224, 224, 0.2);
+  display: inline-block;
 }
 
 .auth-layout__footer-legal,
@@ -221,8 +222,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 8px;
   padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .auth-layout__contact-name {
