@@ -1612,6 +1612,8 @@ class DiscoveryEngine:
                             f"edges={expansion_result.edge_count} "
                             f"ceilings_hit={expansion_result.ceilings_hit}"
                         )
+                    except CycleBudgetExceeded:
+                        raise
                     except Exception as exc:
                         expansion_errors.append(
                             {
@@ -1684,6 +1686,11 @@ class DiscoveryEngine:
             observation_cap_hit=bool(observation_cap_hit),
             phase_history=expansion_phase_history,
         )
+        # Initialize raw_results BEFORE the budget check so get_last_raw_results()
+        # returns whatever was collected even if budget fires here.
+        self._last_raw_results = []
+        raw_results: List[object] = self._last_raw_results
+
         _assert_cycle_budget("observation preparation")
         _emit_progress(
             force=True,
@@ -1699,8 +1706,6 @@ class DiscoveryEngine:
             work_queue.put(ep)
 
         seen_endpoints: Set[str] = set(capped_roots)
-        self._last_raw_results = []
-        raw_results: List[object] = self._last_raw_results
         sequence_counter = 0
         successful_observations = 0
         failed_observations = 0

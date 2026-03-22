@@ -881,15 +881,24 @@ class UnifiedCycleOrchestrator:
                     snap_payload["discovered_surface"] = list(p_reporting["discovered_surface"])
                     snap_payload["discovered_surface_count"] = len(p_reporting["discovered_surface"])
                 self.storage.save_snapshot(tenant_id, snap_payload)
-            except Exception:
-                pass
+                self._logger.info(
+                    "[Orchestrator] Partial snapshot saved: cycle=%s endpoints=%d",
+                    resolved_cycle_id,
+                    p_snapshot.endpoint_count,
+                )
+            except Exception as _save_exc:
+                self._logger.error(
+                    "[Orchestrator] Failed to save partial snapshot for cycle=%s: %s",
+                    resolved_cycle_id,
+                    _save_exc,
+                )
             try:
                 if p_temporal is not None:
                     self.storage.save_temporal_state(
                         tenant_id, p_temporal.to_dict(), cycle_id=resolved_cycle_id
                     )
-            except Exception:
-                pass
+            except Exception as _te:
+                self._logger.warning("[Orchestrator] Failed to save temporal state: %s", _te)
             try:
                 if p_baseline is not None:
                     self.storage.save_layer0_baseline(

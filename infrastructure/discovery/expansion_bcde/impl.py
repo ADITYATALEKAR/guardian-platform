@@ -4176,6 +4176,8 @@ class ExpansionCategoryBCDE:
                 context.cancel_requested = False
                 ConfidenceRecalibrationModule().run(graph, context)
                 runtime_state["final_recalibration_applied"] = True
+            except CycleBudgetExceeded:
+                raise
             except Exception as e:
                 logger.error(
                     f"ConfidenceRecalibration final pass failed: {e}",
