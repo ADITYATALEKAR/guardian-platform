@@ -27,7 +27,7 @@ from infrastructure.operator_plane.registry.operator_tenant_links import (
     list_tenants,
     remove_operator,
 )
-from infrastructure.operator_plane.storage.operator_storage import (
+from infrastructure.operator_plane.storage.pg_operator_storage import (
     delete_session,
     ensure_operator_storage,
     read_operator_links,

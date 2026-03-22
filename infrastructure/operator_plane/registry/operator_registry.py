@@ -12,7 +12,7 @@ from infrastructure.operator_plane.models.operator_models import (
     OperatorAccount,
     validate_operator_account,
 )
-from infrastructure.operator_plane.storage.operator_storage import (
+from infrastructure.operator_plane.storage.pg_operator_storage import (
     read_operators,
     write_operators,
 )

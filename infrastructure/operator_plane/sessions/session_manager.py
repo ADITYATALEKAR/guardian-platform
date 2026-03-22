@@ -8,7 +8,7 @@ from infrastructure.operator_plane.models.operator_models import (
     SessionToken,
     validate_session_token,
 )
-from infrastructure.operator_plane.storage.operator_storage import (
+from infrastructure.operator_plane.storage.pg_operator_storage import (
     delete_session,
     read_session,
     write_session,
@@ -85,6 +85,13 @@ def revoke_session(root: str, token: str) -> None:
 
 
 def revoke_all_sessions(root: str, operator_id: str) -> None:
+    from infrastructure.db.connection import use_postgres
+    if use_postgres():
+        from infrastructure.operator_plane.storage.pg_operator_storage import (
+            revoke_all_sessions as _pg_revoke_all,
+        )
+        _pg_revoke_all(root, operator_id)
+        return
     sessions_dir = Path(root) / "sessions"
     if not sessions_dir.exists():
         return

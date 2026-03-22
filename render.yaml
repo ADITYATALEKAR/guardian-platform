@@ -22,3 +22,5 @@ services:
         sync: false
       - key: GUARDIAN_ADMIN_INSTITUTION
         sync: false
+      - key: GUARDIAN_DATABASE_URL
+        sync: false

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from infrastructure.operator_plane.storage.operator_storage import (
+from infrastructure.operator_plane.storage.pg_operator_storage import (
     read_operator_links,
     write_operator_links,
 )

@@ -158,8 +158,17 @@ def build_layer5_runtime_bundle(config: Layer5BootstrapConfig) -> Layer5RuntimeB
     )
     simulation_root = _validate_runtime_path(config.simulation_root, "simulation_root")
 
-    storage = StorageManager(storage_root)
-    identity_manager = IdentityManager(storage)
+    from infrastructure.db.connection import use_postgres
+    if use_postgres():
+        from infrastructure.db.schema import ensure_schema
+        ensure_schema()
+        from infrastructure.storage_manager.pg_storage_manager import PgStorageManager
+        from infrastructure.storage_manager.pg_identity_manager import PgIdentityManager
+        storage = PgStorageManager(storage_root)
+        identity_manager = PgIdentityManager(storage)
+    else:
+        storage = StorageManager(storage_root)
+        identity_manager = IdentityManager(storage)
 
     discovery_engine = DiscoveryEngine(
         storage=storage,
