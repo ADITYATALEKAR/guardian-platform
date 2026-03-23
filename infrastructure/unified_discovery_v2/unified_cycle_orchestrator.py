@@ -364,11 +364,24 @@ class UnifiedCycleOrchestrator:
             _set_cycle_stage("discovery")
             _enforce_cycle_budget("discovery")
 
-            # Pass the full cycle deadline to the discovery engine.
-            # Expansion phases are capped by their own sub-budgets (cat_a, bcde,
-            # exploration, exploitation — each 90s). The cycle deadline governs
-            # only the post-expansion TLS observation phase inside discovery,
-            # ensuring it gets the full remaining budget (~4 min) after expansion.
+            # Split cycle into two hard windows:
+            #   Discovery window  = 5 min (300s) — expansion + internal TLS
+            #   Observation window = 5 min (300s) — post-expansion TLS probing
+            # Total = 10 min regardless of what sub-budgets say.
+            #
+            # We pass discovery_deadline (now+300s) as the cycle_deadline to
+            # the discovery engine so its internal _assert_cycle_budget stops
+            # expansion at exactly 5 min and moves to its own TLS observation.
+            # The outer cycle_deadline_unix_ms is extended to now+600s so the
+            # orchestrator's own _enforce_cycle_budget checks don't fire until
+            # the full 10-min window is up.
+            _now_ms = int(time.time() * 1000)
+            _DISCOVERY_WINDOW_MS = 300 * 1000   # 5 min hard cap for expansion
+            _TOTAL_CYCLE_MS      = 600 * 1000   # 10 min total
+            discovery_deadline_unix_ms = _now_ms + _DISCOVERY_WINDOW_MS
+            # Extend the outer deadline so post-discovery stages have room.
+            cycle_deadline_unix_ms = _now_ms + _TOTAL_CYCLE_MS
+
             raw_observations = self._run_discovery_compat(
                 tenant_id=tenant_id,
                 rate_controller=rate_controller,
@@ -378,7 +391,7 @@ class UnifiedCycleOrchestrator:
                 stage_callback=_set_cycle_stage,
                 progress_callback=_set_cycle_progress,
                 enable_ct_longitudinal=(resolved_cycle_number >= 2),
-                cycle_deadline_unix_ms=cycle_deadline_unix_ms,
+                cycle_deadline_unix_ms=discovery_deadline_unix_ms,
             )
             reporting_metrics = self.discovery_engine.get_last_reporting_metrics()
             _partial["raw_observations"] = raw_observations

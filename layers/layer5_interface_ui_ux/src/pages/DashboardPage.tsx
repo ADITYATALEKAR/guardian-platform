@@ -47,9 +47,9 @@ export function DashboardPage() {
         if (cancelled) return;
         setScanStatus(s);
         if (s?.status === "running") {
-          scanPollRef.current = window.setTimeout(poll, 4000);
+          fetchDashboard(tenantId); // refresh metrics while scanning
+          scanPollRef.current = window.setTimeout(poll, 5000);
         } else if (s?.status === "completed") {
-          // Refresh dashboard data once scan finishes.
           fetchDashboard(tenantId);
           setScanStatus(s);
         }
@@ -98,49 +98,27 @@ export function DashboardPage() {
 
   if (!data || data.health_summary.total_endpoints === 0) {
     if (isScanning) {
-      const phase = scanStatus?.expansion_active_category ?? scanStatus?.expansion_pass_type ?? "Discovery";
-      const module = scanStatus?.expansion_current_module;
-      const candidates = scanStatus?.expanded_candidate_count ?? 0;
-      const observed = (scanStatus as Record<string, unknown>)?.observed_completed_count as number | undefined;
-      const observing = typeof observed === "number" && observed > 0;
-      const elapsed = Math.floor(((scanStatus?.elapsed_ms as number | undefined) ?? 0) / 1000);
+      // Show the real dashboard shell with zeros — numbers update when scan completes.
+      // Fall through to render below with empty data substituted.
+    } else {
       return (
-        <div className="g-dashboard-panel">
-          <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{
-              display: "inline-block", width: 8, height: 8, borderRadius: "50%",
-              background: "var(--color-severity-low)",
-              boxShadow: "0 0 6px var(--color-severity-low)", animation: "pulse 1.4s infinite",
-            }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.18em",
-              textTransform: "uppercase", color: "var(--color-severity-low)" }}>
-              Scan running — {elapsed}s elapsed
-            </span>
-          </div>
-          <div className="g-metric-grid" style={{ gridTemplateColumns: "repeat(3, minmax(140px, 1fr))", marginBottom: 16 }}>
-            <MetricCard label="Phase" value={String(phase ?? "-")} />
-            <MetricCard label="Endpoints Found" value={candidates} />
-            <MetricCard label={observing ? "Observed" : "Module"} value={observing ? observed! : (module ? String(module).replace(/Module$/, "") : "-")} />
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)",
-            letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            {observing
-              ? `Probing TLS on discovered endpoints — results will appear when scan completes.`
-              : `Expanding attack surface — discovered endpoints will appear here shortly.`}
-          </div>
-        </div>
+        <EmptyState
+          message="No scan data yet. Run your first scan to see your risk posture."
+          action="Start Onboarding"
+          onAction={() => navigate("/onboarding")}
+        />
       );
     }
-    return (
-      <EmptyState
-        message="No scan data yet. Run your first scan to see your risk posture."
-        action="Start Onboarding"
-        onAction={() => navigate("/onboarding")}
-      />
-    );
   }
 
-  const { health_summary: hs, observation_summary: os, risk_distribution: rd, drift_report: dr, endpoints } = data;
+  const EMPTY_DATA = {
+    health_summary: { total_endpoints: 0, healthy: 0, at_risk: 0, critical: 0, unobserved: 0 },
+    observation_summary: { discovered_related: 0, observation_attempts: 0, observation_successes: 0, observation_failures: 0, recorded_endpoints: 0, unverified_historical: 0, tls_findings_count: 0, waf_findings_count: 0 },
+    risk_distribution: { critical: 0, high: 0, medium: 0, low: 0 },
+    drift_report: { new_endpoints: 0, removed_endpoints: 0, risk_increased: false },
+    endpoints: [] as typeof (data?.endpoints),
+  };
+  const { health_summary: hs, observation_summary: os, risk_distribution: rd, drift_report: dr, endpoints } = data ?? EMPTY_DATA;
   const ownershipSummary = {
     first_party: endpoints.filter((ep) => ep.ownership_category === "first_party").length,
     adjacent_dependency: endpoints.filter((ep) => ep.ownership_category === "adjacent_dependency").length,
@@ -153,6 +131,22 @@ export function DashboardPage() {
 
   return (
     <div className="g-dashboard-panel">
+      {isScanning && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
+          padding: "6px 10px",
+          background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.18)",
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+            background: "var(--color-severity-low)", animation: "pulse 1.4s infinite" }} />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em",
+            textTransform: "uppercase", color: "var(--color-severity-low)" }}>
+            Scan running
+            {(scanStatus?.expanded_candidate_count ?? 0) > 0 && ` — ${scanStatus!.expanded_candidate_count} endpoints discovered`}
+            {(scanStatus?.expansion_current_module) && ` — ${String(scanStatus.expansion_current_module).replace(/Module$/, "")}`}
+          </span>
+        </div>
+      )}
       {/* Discovery Summary */}
       <div className="g-section-label">Discovery Summary</div>
 
