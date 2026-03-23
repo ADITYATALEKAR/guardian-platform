@@ -14,6 +14,7 @@ export function OnboardingPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scanRunning = scanStatus?.status === "running";
+  const scanCompleted = scanStatus?.status === "completed";
   const scanStatusText = useMemo(() => {
     if (!scanRunning) return null;
     const cycleId = scanStatus?.cycle_id || "-";
@@ -234,6 +235,47 @@ export function OnboardingPage() {
   if (!tenantId) {
     return (
       <div className="g-empty">No tenant selected. Please register first.</div>
+    );
+  }
+
+  // Scan already completed — redirect to dashboard instead of showing the form again.
+  if (scanCompleted) {
+    return (
+      <div style={{ maxWidth: 560, margin: "0 auto" }}>
+        <div
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "var(--font-size-h2)",
+            fontWeight: 800,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--pure)",
+            marginBottom: 8,
+          }}
+        >
+          Workspace Setup
+        </div>
+        <div
+          style={{
+            padding: "8px 12px",
+            marginBottom: 16,
+            background: "rgba(34, 197, 94, 0.08)",
+            border: "1px solid rgba(34, 197, 94, 0.25)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--font-size-caption)",
+            color: "var(--color-severity-ok)",
+          }}
+        >
+          Discovery scan completed. Your workspace is already configured.
+        </div>
+        <button
+          className="btn btn-primary"
+          style={{ width: "100%", marginTop: 8 }}
+          onClick={() => navigate("/dashboard")}
+        >
+          Go to Dashboard
+        </button>
+      </div>
     );
   }
 
