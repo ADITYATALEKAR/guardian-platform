@@ -36,7 +36,7 @@ export function DashboardPage() {
     }
   }, [tenantId, fetchDashboard]);
 
-  // Poll scan status while running so dashboard shows live discovery progress.
+  // Poll scan status; auto-refresh dashboard once scan completes.
   useEffect(() => {
     if (!tenantId) return;
     let cancelled = false;
@@ -47,14 +47,12 @@ export function DashboardPage() {
         if (cancelled) return;
         setScanStatus(s);
         if (s?.status === "running") {
-          fetchDashboard(tenantId); // refresh metrics while scanning
-          scanPollRef.current = window.setTimeout(poll, 5000);
-        } else if (s?.status === "completed") {
+          scanPollRef.current = window.setTimeout(poll, 8000);
+        } else if (s?.status === "completed" && (!data || data.health_summary.total_endpoints === 0)) {
           fetchDashboard(tenantId);
-          setScanStatus(s);
         }
       } catch {
-        if (!cancelled) scanPollRef.current = window.setTimeout(poll, 8000);
+        if (!cancelled) scanPollRef.current = window.setTimeout(poll, 15000);
       }
     };
 
@@ -63,7 +61,7 @@ export function DashboardPage() {
       cancelled = true;
       if (scanPollRef.current !== undefined) window.clearTimeout(scanPollRef.current);
     };
-  }, [tenantId, fetchDashboard]);
+  }, [tenantId, fetchDashboard, data]);
 
   // Load posture findings for quantum analysis
   useEffect(() => {
@@ -97,28 +95,16 @@ export function DashboardPage() {
   const isScanning = scanStatus?.status === "running";
 
   if (!data || data.health_summary.total_endpoints === 0) {
-    if (isScanning) {
-      // Show the real dashboard shell with zeros — numbers update when scan completes.
-      // Fall through to render below with empty data substituted.
-    } else {
-      return (
-        <EmptyState
-          message="No scan data yet. Run your first scan to see your risk posture."
-          action="Start Onboarding"
-          onAction={() => navigate("/onboarding")}
-        />
-      );
-    }
+    return (
+      <EmptyState
+        message={isScanning ? "Scan in progress. Dashboard will load when the cycle completes." : "No scan data yet. Run your first scan to see your risk posture."}
+        action={isScanning ? undefined : "Start Onboarding"}
+        onAction={isScanning ? undefined : () => navigate("/onboarding")}
+      />
+    );
   }
 
-  const EMPTY_DATA = {
-    health_summary: { total_endpoints: 0, healthy: 0, at_risk: 0, critical: 0, unobserved: 0 },
-    observation_summary: { discovered_related: 0, observation_attempts: 0, observation_successes: 0, observation_failures: 0, recorded_endpoints: 0, unverified_historical: 0, tls_findings_count: 0, waf_findings_count: 0 },
-    risk_distribution: { critical: 0, high: 0, medium: 0, low: 0 },
-    drift_report: { new_endpoints: 0, removed_endpoints: 0, risk_increased: false },
-    endpoints: [] as EndpointDTO[],
-  };
-  const { health_summary: hs, observation_summary: os, risk_distribution: rd, drift_report: dr, endpoints } = data ?? EMPTY_DATA;
+  const { health_summary: hs, observation_summary: os, risk_distribution: rd, drift_report: dr, endpoints } = data;
   const ownershipSummary = {
     first_party: endpoints.filter((ep) => ep.ownership_category === "first_party").length,
     adjacent_dependency: endpoints.filter((ep) => ep.ownership_category === "adjacent_dependency").length,
@@ -131,22 +117,6 @@ export function DashboardPage() {
 
   return (
     <div className="g-dashboard-panel">
-      {isScanning && (
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
-          padding: "6px 10px",
-          background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.18)",
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-            background: "var(--color-severity-low)", animation: "pulse 1.4s infinite" }} />
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.18em",
-            textTransform: "uppercase", color: "var(--color-severity-low)" }}>
-            Scan running
-            {(scanStatus?.expanded_candidate_count ?? 0) > 0 && ` — ${scanStatus!.expanded_candidate_count} endpoints discovered`}
-            {(scanStatus?.expansion_current_module) && ` — ${String(scanStatus.expansion_current_module).replace(/Module$/, "")}`}
-          </span>
-        </div>
-      )}
       {/* Discovery Summary */}
       <div className="g-section-label">Discovery Summary</div>
 
