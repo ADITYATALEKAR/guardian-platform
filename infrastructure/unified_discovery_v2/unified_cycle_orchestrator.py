@@ -364,6 +364,15 @@ class UnifiedCycleOrchestrator:
             _set_cycle_stage("discovery")
             _enforce_cycle_budget("discovery")
 
+            # Give discovery 85% of the total budget. Discovery includes both
+            # expansion (CT/DNS) and TLS observation internally. The remaining
+            # 15% is reserved for snapshot build, risk scoring, and persistence.
+            discovery_fraction = 0.85
+            discovery_deadline_unix_ms = min(
+                cycle_deadline_unix_ms,
+                int(time.time() * 1000) + int(self.cycle_time_budget_seconds * discovery_fraction * 1000),
+            )
+
             raw_observations = self._run_discovery_compat(
                 tenant_id=tenant_id,
                 rate_controller=rate_controller,
@@ -373,7 +382,7 @@ class UnifiedCycleOrchestrator:
                 stage_callback=_set_cycle_stage,
                 progress_callback=_set_cycle_progress,
                 enable_ct_longitudinal=(resolved_cycle_number >= 2),
-                cycle_deadline_unix_ms=cycle_deadline_unix_ms,
+                cycle_deadline_unix_ms=discovery_deadline_unix_ms,
             )
             reporting_metrics = self.discovery_engine.get_last_reporting_metrics()
             _partial["raw_observations"] = raw_observations
