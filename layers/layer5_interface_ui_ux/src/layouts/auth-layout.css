@@ -81,11 +81,11 @@
 /* Headline */
 .auth-layout__headline {
   margin: 0 0 14px;
-  font-family: var(--font-display);
+  font-family: var(--font-primary);
   font-size: clamp(18px, 2.2vw, 34px);
   font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.03em;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
   color: var(--pure);
   white-space: nowrap;
   overflow: visible;
