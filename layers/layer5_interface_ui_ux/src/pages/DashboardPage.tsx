@@ -116,7 +116,7 @@ export function DashboardPage() {
     observation_summary: { discovered_related: 0, observation_attempts: 0, observation_successes: 0, observation_failures: 0, recorded_endpoints: 0, unverified_historical: 0, tls_findings_count: 0, waf_findings_count: 0 },
     risk_distribution: { critical: 0, high: 0, medium: 0, low: 0 },
     drift_report: { new_endpoints: 0, removed_endpoints: 0, risk_increased: false },
-    endpoints: [] as typeof (data?.endpoints),
+    endpoints: [] as EndpointDTO[],
   };
   const { health_summary: hs, observation_summary: os, risk_distribution: rd, drift_report: dr, endpoints } = data ?? EMPTY_DATA;
   const ownershipSummary = {
