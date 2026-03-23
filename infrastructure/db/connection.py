@@ -22,20 +22,39 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
     return _pool
 
 
+def _checkout(pool: psycopg2.pool.ThreadedConnectionPool):
+    """Get a live connection, discarding any broken ones from the pool."""
+    for _ in range(5):
+        conn = pool.getconn()
+        try:
+            conn.cursor().execute("SELECT 1")
+            conn.reset()
+            return conn
+        except Exception:
+            try:
+                pool.putconn(conn, close=True)
+            except Exception:
+                pass
+    raise RuntimeError("No live database connections available")
+
+
 def get_conn():
-    return _get_pool().getconn()
+    return _checkout(_get_pool())
 
 
 def try_get_conn():
     """Like get_conn() but returns None instead of raising if pool is exhausted."""
     try:
-        return _get_pool().getconn()
+        return _checkout(_get_pool())
     except Exception:
         return None
 
 
 def put_conn(conn) -> None:
-    _get_pool().putconn(conn)
+    try:
+        _get_pool().putconn(conn)
+    except Exception:
+        pass
 
 
 def use_postgres() -> bool:
