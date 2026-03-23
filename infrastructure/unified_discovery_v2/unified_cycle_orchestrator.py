@@ -364,13 +364,13 @@ class UnifiedCycleOrchestrator:
             _set_cycle_stage("discovery")
             _enforce_cycle_budget("discovery")
 
-            # Give discovery 85% of the total budget. Discovery includes both
-            # expansion (CT/DNS) and TLS observation internally. The remaining
-            # 15% is reserved for snapshot build, risk scoring, and persistence.
-            discovery_fraction = 0.85
+            # Hard 3-minute discovery window. Expansion (CT/DNS + BCDE TLS) must
+            # finish within 180s so the post-expansion observation phase always
+            # gets the remaining ~4 minutes of the 7-minute total cycle budget.
+            _DISCOVERY_WINDOW_SECONDS = 180
             discovery_deadline_unix_ms = min(
                 cycle_deadline_unix_ms,
-                int(time.time() * 1000) + int(self.cycle_time_budget_seconds * discovery_fraction * 1000),
+                int(time.time() * 1000) + (_DISCOVERY_WINDOW_SECONDS * 1000),
             )
 
             raw_observations = self._run_discovery_compat(
