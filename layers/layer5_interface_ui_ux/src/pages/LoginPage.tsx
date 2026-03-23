@@ -1,13 +1,15 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useSessionStore } from "../stores/useSessionStore";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const login = useSessionStore((s) => s.login);
   const busy = useSessionStore((s) => s.busy);
   const error = useSessionStore((s) => s.error);
   const clearError = useSessionStore((s) => s.clearError);
+  const accountDeleted = (location.state as Record<string, unknown> | null)?.accountDeleted === true;
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +28,21 @@ export function LoginPage() {
 
   return (
     <form onSubmit={handleSubmit}>
+      {accountDeleted && (
+        <div
+          style={{
+            padding: "8px 12px",
+            marginBottom: 16,
+            background: "rgba(34, 197, 94, 0.08)",
+            border: "1px solid rgba(34, 197, 94, 0.25)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "var(--font-size-caption)",
+            color: "var(--color-severity-ok)",
+          }}
+        >
+          Account deleted. You have been signed out.
+        </div>
+      )}
       {error && (
         <div
           style={{

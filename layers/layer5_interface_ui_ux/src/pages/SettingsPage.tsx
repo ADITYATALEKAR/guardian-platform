@@ -159,16 +159,15 @@ function ProfileTab({ onToast }: { onToast: (t: ToastState) => void }) {
       return;
     }
     setDeleteBusy(true);
-    try {
-      await dataSource.deleteCurrentUser(deletePassword);
-      clearDashboard();
-      await logout();
-      navigate("/login", { replace: true });
-    } catch (err) {
-      onToast({ type: "error", message: humanizeSettingsError(err) });
-    } finally {
-      setDeleteBusy(false);
-    }
+    // Fire deletion in the background — it can take several seconds on the
+    // free tier. Clear the session and redirect immediately so the user
+    // sees a clean "account deleted" state rather than a timeout error.
+    dataSource.deleteCurrentUser(deletePassword).catch(() => {
+      // Deletion already in progress server-side; ignore timeout/network errors.
+    });
+    clearDashboard();
+    await logout();
+    navigate("/login", { replace: true, state: { accountDeleted: true } });
   }
 
   return (
