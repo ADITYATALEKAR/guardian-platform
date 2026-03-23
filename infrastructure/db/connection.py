@@ -17,7 +17,9 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
         with _pool_lock:
             if _pool is None:
                 dsn = os.environ["GUARDIAN_DATABASE_URL"]
-                _pool = psycopg2.pool.ThreadedConnectionPool(2, 20, dsn)
+                # Supabase free tier Session Pooler caps connections at pool_size=1.
+                # Keep pool small; Transaction Pooler (port 6543) handles concurrency server-side.
+                _pool = psycopg2.pool.ThreadedConnectionPool(1, 3, dsn)
     return _pool
 
 
