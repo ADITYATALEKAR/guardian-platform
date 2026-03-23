@@ -306,6 +306,12 @@ def build_layer5_wsgi_application_from_env() -> Callable[[Mapping[str, object], 
         for item in allowed_origins_raw.split(",")
         if item.strip()
     }
+    def _env_int(name: str, default: int) -> int:
+        try:
+            return int(os.getenv(name, "").strip() or default)
+        except (ValueError, TypeError):
+            return default
+
     return build_layer5_wsgi_application(
         Layer5BootstrapConfig(
             storage_root=storage_root,
@@ -313,6 +319,13 @@ def build_layer5_wsgi_application_from_env() -> Callable[[Mapping[str, object], 
             simulation_root=simulation_root,
             master_env=str(os.getenv("LAYER5_MASTER_ENV", "OPERATOR_MASTER_PASSWORD")).strip()
             or "OPERATOR_MASTER_PASSWORD",
+            discovery_max_workers=_env_int("GUARDIAN_DISCOVERY_MAX_WORKERS", 8),
+            discovery_max_endpoints=_env_int("GUARDIAN_DISCOVERY_MAX_ENDPOINTS", 500),
+            cycle_time_budget_seconds=_env_int("GUARDIAN_CYCLE_TIME_BUDGET_SECONDS", 1800),
+            discovery_category_a_time_budget_seconds=_env_int("GUARDIAN_CAT_A_BUDGET_SECONDS", 300),
+            discovery_bcde_time_budget_seconds=_env_int("GUARDIAN_CAT_BCDE_BUDGET_SECONDS", 300),
+            discovery_exploration_budget_seconds=_env_int("GUARDIAN_EXPLORATION_BUDGET_SECONDS", 300),
+            discovery_exploitation_budget_seconds=_env_int("GUARDIAN_EXPLOITATION_BUDGET_SECONDS", 300),
         ),
         allowed_origins=allowed_origins,
         trust_forwarded_headers=_parse_bool(os.getenv("LAYER5_TRUST_FORWARDED_HEADERS")),

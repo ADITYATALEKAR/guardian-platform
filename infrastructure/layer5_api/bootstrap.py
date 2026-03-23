@@ -33,11 +33,11 @@ class Layer5BootstrapConfig:
     discovery_max_dns_recursion: int = 2
     discovery_max_spf_recursion: int = 2
     discovery_max_ct_calls_per_cycle: int = 3
-    discovery_category_a_time_budget_seconds: int = 90
-    discovery_bcde_time_budget_seconds: int = 90
-    cycle_time_budget_seconds: int = 600
-    discovery_exploration_budget_seconds: int = 120
-    discovery_exploitation_budget_seconds: int = 120
+    discovery_category_a_time_budget_seconds: int = 300
+    discovery_bcde_time_budget_seconds: int = 300
+    cycle_time_budget_seconds: int = 1800
+    discovery_exploration_budget_seconds: int = 300
+    discovery_exploitation_budget_seconds: int = 300
     discovery_module_time_slice_seconds: int = 20
     discovery_allow_insecure_tls: bool = False
     enable_background_scheduler: bool = True
