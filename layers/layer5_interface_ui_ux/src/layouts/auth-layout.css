@@ -5,7 +5,7 @@
 .auth-layout {
   position: relative;
   height: 100vh;
-  overflow: hidden;
+  overflow: clip;
   background: var(--black);
 }
 
@@ -334,7 +334,8 @@
   margin-left: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: flex-end;
+  gap: 3px;
   text-align: right;
 }
 
