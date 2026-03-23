@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSessionStore } from "../stores/useSessionStore";
 import { useDashboardStore } from "../stores/useDashboardStore";
@@ -19,7 +19,7 @@ import {
   type ExtractedFinding,
   type QuantumSummary,
 } from "../lib/extractors";
-import { dataSource } from "../lib/api";
+import { dataSource, type ScanStatus } from "../lib/api";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -27,11 +27,42 @@ export function DashboardPage() {
   const { data, loading, error, fetchDashboard } = useDashboardStore();
   const [allFindings, setAllFindings] = useState<ExtractedFinding[]>([]);
   const [findingsLoaded, setFindingsLoaded] = useState(false);
+  const [scanStatus, setScanStatus] = useState<ScanStatus | null>(null);
+  const scanPollRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (tenantId) {
       fetchDashboard(tenantId);
     }
+  }, [tenantId, fetchDashboard]);
+
+  // Poll scan status while running so dashboard shows live discovery progress.
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const s = await dataSource.getScanStatus(tenantId);
+        if (cancelled) return;
+        setScanStatus(s);
+        if (s?.status === "running") {
+          scanPollRef.current = window.setTimeout(poll, 4000);
+        } else if (s?.status === "completed") {
+          // Refresh dashboard data once scan finishes.
+          fetchDashboard(tenantId);
+          setScanStatus(s);
+        }
+      } catch {
+        if (!cancelled) scanPollRef.current = window.setTimeout(poll, 8000);
+      }
+    };
+
+    void poll();
+    return () => {
+      cancelled = true;
+      if (scanPollRef.current !== undefined) window.clearTimeout(scanPollRef.current);
+    };
   }, [tenantId, fetchDashboard]);
 
   // Load posture findings for quantum analysis
@@ -63,7 +94,43 @@ export function DashboardPage() {
     return <ErrorBanner message={error} onRetry={() => tenantId && fetchDashboard(tenantId)} />;
   }
 
+  const isScanning = scanStatus?.status === "running";
+
   if (!data || data.health_summary.total_endpoints === 0) {
+    if (isScanning) {
+      const phase = scanStatus?.expansion_active_category ?? scanStatus?.expansion_pass_type ?? "Discovery";
+      const module = scanStatus?.expansion_current_module;
+      const candidates = scanStatus?.expanded_candidate_count ?? 0;
+      const observed = (scanStatus as Record<string, unknown>)?.observed_completed_count as number | undefined;
+      const observing = typeof observed === "number" && observed > 0;
+      const elapsed = Math.floor(((scanStatus?.elapsed_ms as number | undefined) ?? 0) / 1000);
+      return (
+        <div className="g-dashboard-panel">
+          <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{
+              display: "inline-block", width: 8, height: 8, borderRadius: "50%",
+              background: "var(--color-severity-low)",
+              boxShadow: "0 0 6px var(--color-severity-low)", animation: "pulse 1.4s infinite",
+            }} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.18em",
+              textTransform: "uppercase", color: "var(--color-severity-low)" }}>
+              Scan running — {elapsed}s elapsed
+            </span>
+          </div>
+          <div className="g-metric-grid" style={{ gridTemplateColumns: "repeat(3, minmax(140px, 1fr))", marginBottom: 16 }}>
+            <MetricCard label="Phase" value={String(phase ?? "-")} />
+            <MetricCard label="Endpoints Found" value={candidates} />
+            <MetricCard label={observing ? "Observed" : "Module"} value={observing ? observed! : (module ? String(module).replace(/Module$/, "") : "-")} />
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)",
+            letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            {observing
+              ? `Probing TLS on discovered endpoints — results will appear when scan completes.`
+              : `Expanding attack surface — discovered endpoints will appear here shortly.`}
+          </div>
+        </div>
+      );
+    }
     return (
       <EmptyState
         message="No scan data yet. Run your first scan to see your risk posture."

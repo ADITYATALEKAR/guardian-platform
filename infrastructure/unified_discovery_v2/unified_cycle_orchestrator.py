@@ -364,15 +364,11 @@ class UnifiedCycleOrchestrator:
             _set_cycle_stage("discovery")
             _enforce_cycle_budget("discovery")
 
-            # Hard 3-minute discovery window. Expansion (CT/DNS + BCDE TLS) must
-            # finish within 180s so the post-expansion observation phase always
-            # gets the remaining ~4 minutes of the 7-minute total cycle budget.
-            _DISCOVERY_WINDOW_SECONDS = 180
-            discovery_deadline_unix_ms = min(
-                cycle_deadline_unix_ms,
-                int(time.time() * 1000) + (_DISCOVERY_WINDOW_SECONDS * 1000),
-            )
-
+            # Pass the full cycle deadline to the discovery engine.
+            # Expansion phases are capped by their own sub-budgets (cat_a, bcde,
+            # exploration, exploitation — each 90s). The cycle deadline governs
+            # only the post-expansion TLS observation phase inside discovery,
+            # ensuring it gets the full remaining budget (~4 min) after expansion.
             raw_observations = self._run_discovery_compat(
                 tenant_id=tenant_id,
                 rate_controller=rate_controller,
@@ -382,7 +378,7 @@ class UnifiedCycleOrchestrator:
                 stage_callback=_set_cycle_stage,
                 progress_callback=_set_cycle_progress,
                 enable_ct_longitudinal=(resolved_cycle_number >= 2),
-                cycle_deadline_unix_ms=discovery_deadline_unix_ms,
+                cycle_deadline_unix_ms=cycle_deadline_unix_ms,
             )
             reporting_metrics = self.discovery_engine.get_last_reporting_metrics()
             _partial["raw_observations"] = raw_observations
