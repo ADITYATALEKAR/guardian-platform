@@ -82,12 +82,12 @@
 .auth-layout__headline {
   margin: 0 0 14px;
   font-family: var(--font-display);
-  font-size: clamp(24px, 3.8vw, 38px);
+  font-size: clamp(18px, 2.2vw, 34px);
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.03em;
   color: var(--pure);
-  max-width: 16ch;
+  white-space: nowrap;
   overflow: visible;
   flex-shrink: 0;
 }
@@ -395,7 +395,8 @@
   }
 
   .auth-layout__headline {
-    max-width: none;
+    white-space: normal;
+    font-size: clamp(22px, 5vw, 36px);
   }
 
   .auth-layout__access-footer {
@@ -425,7 +426,8 @@
   }
 
   .auth-layout__headline {
-    font-size: 32px;
+    font-size: clamp(20px, 6vw, 30px);
+    white-space: normal;
   }
 
   .auth-layout__value-row {
