@@ -17,14 +17,21 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
         with _pool_lock:
             if _pool is None:
                 dsn = os.environ["GUARDIAN_DATABASE_URL"]
-                # Supabase free tier Session Pooler caps connections at pool_size=1.
-                # Keep pool small; Transaction Pooler (port 6543) handles concurrency server-side.
-                _pool = psycopg2.pool.ThreadedConnectionPool(1, 3, dsn)
+                # Transaction Pooler multiplexes server-side — keep client pool at 10.
+                _pool = psycopg2.pool.ThreadedConnectionPool(1, 10, dsn)
     return _pool
 
 
 def get_conn():
     return _get_pool().getconn()
+
+
+def try_get_conn():
+    """Like get_conn() but returns None instead of raising if pool is exhausted."""
+    try:
+        return _get_pool().getconn()
+    except Exception:
+        return None
 
 
 def put_conn(conn) -> None:

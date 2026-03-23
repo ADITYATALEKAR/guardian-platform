@@ -1284,7 +1284,12 @@ class PgStorageManager:
 
     def update_cycle_lock(self, tenant_id: str, updates: Dict[str, Any]) -> None:
         tid = self._validate_tenant_id(tenant_id)
-        conn = get_conn()
+        from infrastructure.db.connection import try_get_conn
+        conn = try_get_conn()
+        if conn is None:
+            # Pool exhausted — skip this progress write rather than raising.
+            # The orchestrator will retry on the next tick.
+            return
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(

@@ -26,7 +26,7 @@ class Layer5BootstrapConfig:
     simulation_root: str
     master_env: str = "OPERATOR_MASTER_PASSWORD"
     layer2_mode: str = "hybrid"
-    discovery_max_workers: int = 25
+    discovery_max_workers: int = 8
     discovery_max_endpoints: int = 500
     discovery_samples_per_endpoint: int = 3
     discovery_max_san_recursion: int = 2
