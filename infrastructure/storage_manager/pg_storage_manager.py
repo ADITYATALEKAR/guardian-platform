@@ -770,17 +770,18 @@ class PgStorageManager:
         finally:
             put_conn(conn)
 
-    def load_cycle_metadata(self, tenant_id: str) -> List[Dict[str, Any]]:
+    def load_cycle_metadata(self, tenant_id: str, *, limit: int = 20) -> List[Dict[str, Any]]:
         tid = self._validate_tenant_id(tenant_id)
         conn = get_conn()
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
                 cur.execute(
-                    "SELECT payload FROM cycle_metadata WHERE tenant_id = %s ORDER BY id",
-                    (tid,),
+                    "SELECT payload FROM cycle_metadata WHERE tenant_id = %s ORDER BY id DESC LIMIT %s",
+                    (tid, int(limit)),
                 )
                 rows = cur.fetchall()
-            return [self._overlay_cycle_metadata_payload(tid, row["payload"]) for row in rows]
+            # Reverse so callers that expect ascending order still work.
+            return [self._overlay_cycle_metadata_payload(tid, row["payload"]) for row in reversed(rows)]
         finally:
             put_conn(conn)
 

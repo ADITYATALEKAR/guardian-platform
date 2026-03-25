@@ -30,10 +30,6 @@ def _checkout(pool: psycopg2.pool.ThreadedConnectionPool):
             with conn.cursor() as cur:
                 cur.execute("SELECT 1")
             conn.reset()
-            # Set a 20s statement timeout after reset so slow queries
-            # fail fast instead of hanging requests for 30s.
-            with conn.cursor() as cur:
-                cur.execute("SET statement_timeout = '20000'")
             return conn
         except Exception:
             try:
