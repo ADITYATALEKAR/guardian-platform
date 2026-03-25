@@ -451,7 +451,6 @@ class UnifiedCycleOrchestrator:
             # TEMPORAL STATE UPDATE
             # =====================================================
             _set_cycle_stage("temporal_update")
-            _enforce_cycle_budget("temporal_update")
 
             updated_temporal_state = self.temporal_engine.update_state(
                 current_snapshot=snapshot,
@@ -464,7 +463,6 @@ class UnifiedCycleOrchestrator:
             # TELEMETRY → GROUP FINGERPRINTS
             # =====================================================
             _set_cycle_stage("telemetry_grouping")
-            _enforce_cycle_budget("telemetry_grouping")
 
             telemetry_records = self.storage.load_telemetry_for_cycle(
                 tenant_id=tenant_id,
@@ -495,7 +493,6 @@ class UnifiedCycleOrchestrator:
             # TRUST GRAPH REPLAY (deterministic)
             # =====================================================
             _set_cycle_stage("trust_graph_replay")
-            _enforce_cycle_budget("trust_graph_replay")
 
             trust_graph = TrustGraph()
             previous_graph_snapshot = self.storage.load_graph_snapshot(tenant_id)
@@ -531,7 +528,6 @@ class UnifiedCycleOrchestrator:
             # LAYER 3 STATE SNAPSHOT LOAD (per-tenant, once)
             # =====================================================
             _set_cycle_stage("layer_evaluation")
-            _enforce_cycle_budget("layer_evaluation")
 
             state_map = {}
             snapshot_doc = self.storage.load_layer3_snapshot(tenant_id)
@@ -548,7 +544,6 @@ class UnifiedCycleOrchestrator:
             for endpoint in snapshot.endpoints:
                 if str(getattr(endpoint, "observation_state", "observed") or "observed").lower() != "observed":
                     continue
-                _enforce_cycle_budget("layer_evaluation")
 
                 entity_id = endpoint.endpoint_id()
                 fingerprints = fingerprints_by_entity.get(entity_id, [])
@@ -701,8 +696,10 @@ class UnifiedCycleOrchestrator:
             # =====================================================
             # STRICT PERSIST ORDER (crash-safe)
             # =====================================================
+            # NOTE: Never enforce the cycle budget here. Persistence MUST
+            # complete regardless of elapsed time — skipping save_snapshot
+            # causes the dashboard to show all zeros after a completed scan.
             _set_cycle_stage("artifact_persist")
-            _enforce_cycle_budget("artifact_persist")
 
             snapshot_payload = snapshot.to_dict()
             discovered_surface = reporting_metrics.get("discovered_surface", [])
