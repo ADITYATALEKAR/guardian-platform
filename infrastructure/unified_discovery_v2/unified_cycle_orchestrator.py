@@ -365,11 +365,11 @@ class UnifiedCycleOrchestrator:
             _enforce_cycle_budget("discovery")
 
             # Pass the full cycle deadline to the discovery engine.
-            # Expansion phases are capped by their own sub-budgets (120s each
+            # Expansion phases are capped by their own sub-budgets (75s each
             # for cat_a, bcde, exploration, exploitation) so they stop
-            # naturally at ~4-5 min. The cycle_deadline_unix_ms (10 min from
+            # naturally at ~2.5 min. The cycle_deadline_unix_ms (5 min from
             # cycle start) is only reached by the post-expansion TLS observation
-            # phase, which therefore always gets several minutes to probe.
+            # phase, which therefore gets the remaining ~2.5 min to probe.
             raw_observations = self._run_discovery_compat(
                 tenant_id=tenant_id,
                 rate_controller=rate_controller,
@@ -384,13 +384,15 @@ class UnifiedCycleOrchestrator:
             reporting_metrics = self.discovery_engine.get_last_reporting_metrics()
             _partial["raw_observations"] = raw_observations
             _partial["reporting_metrics"] = reporting_metrics
-            _enforce_cycle_budget("discovery")
+            # NOTE: Do NOT enforce cycle budget here. Discovery uses the full
+            # cycle deadline for TLS observation, so the budget is almost always
+            # exhausted when discovery returns. We MUST proceed to snapshot build
+            # and persistence — skipping these causes the dashboard to show zeros.
 
             # =====================================================
             # SNAPSHOT
             # =====================================================
             _set_cycle_stage("snapshot_build")
-            _enforce_cycle_budget("snapshot_build")
 
             previous_temporal = self.storage.load_temporal_state(tenant_id)
 
@@ -706,9 +708,17 @@ class UnifiedCycleOrchestrator:
             if isinstance(discovered_surface, list):
                 snapshot_payload["discovered_surface"] = list(discovered_surface)
                 snapshot_payload["discovered_surface_count"] = len(discovered_surface)
+            self._logger.info(
+                "[Orchestrator] Saving snapshot: tenant=%s cycle=%s endpoints=%d",
+                tenant_id, resolved_cycle_id, snapshot.endpoint_count,
+            )
             self.storage.save_snapshot(
                 tenant_id,
                 snapshot_payload,
+            )
+            self._logger.info(
+                "[Orchestrator] Snapshot saved successfully: tenant=%s cycle=%s",
+                tenant_id, resolved_cycle_id,
             )
 
             self.storage.save_temporal_state(
