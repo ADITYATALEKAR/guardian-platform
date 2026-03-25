@@ -262,7 +262,7 @@ class AggregationEngine:
 
         snapshot, temporal, guardian_records = self._load_latest_projection_artifacts(
             tenant_id,
-            guardian_limit=500,
+            guardian_limit=200,
         )
         metadata_rows = self._migrator.migrate_cycle_metadata_rows(
             self.storage.load_cycle_metadata(tenant_id)

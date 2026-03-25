@@ -23,13 +23,18 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
 
 
 def _checkout(pool: psycopg2.pool.ThreadedConnectionPool):
-    """Get a live connection, discarding any broken ones from the pool."""
-    for _ in range(5):
+    """Get a live connection, discarding any broken ones from the pool.
+
+    We skip SELECT 1 + conn.reset() on every checkout because Supabase
+    Transaction Pooler adds ~2s latency per round-trip.  build_dashboard
+    calls get_conn() 7+ times, so the health-check overhead alone caused
+    Render 502s (>30 s).  Instead we just rollback any leftover transaction
+    state (cheap, local) and only retry on actual failures.
+    """
+    for _ in range(3):
         conn = pool.getconn()
         try:
-            with conn.cursor() as cur:
-                cur.execute("SELECT 1")
-            conn.reset()
+            conn.rollback()          # clear any aborted-txn state (local, fast)
             return conn
         except Exception:
             try:

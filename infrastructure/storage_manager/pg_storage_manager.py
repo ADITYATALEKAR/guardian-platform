@@ -1078,19 +1078,16 @@ class PgStorageManager:
         conn = get_conn()
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                if limit is not None:
-                    cur.execute(
-                        "SELECT payload FROM guardian_records WHERE tenant_id = %s "
-                        "ORDER BY id LIMIT %s",
-                        (tid, int(limit)),
-                    )
-                else:
-                    cur.execute(
-                        "SELECT payload FROM guardian_records WHERE tenant_id = %s ORDER BY id",
-                        (tid,),
-                    )
+                effective_limit = int(limit) if limit is not None else 200
+                # Fetch latest records (DESC) so we get current-cycle records
+                # first, then reverse for ascending order compatibility.
+                cur.execute(
+                    "SELECT payload FROM guardian_records WHERE tenant_id = %s "
+                    "ORDER BY id DESC LIMIT %s",
+                    (tid, effective_limit),
+                )
                 rows = cur.fetchall()
-            return [self._overlay_guardian_payload(tid, row["payload"]) for row in rows]
+            return [self._overlay_guardian_payload(tid, row["payload"]) for row in reversed(rows)]
         finally:
             put_conn(conn)
 
