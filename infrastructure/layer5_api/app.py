@@ -44,6 +44,7 @@ class Layer5API:
     _ROUTE_ADMIN_WORKSPACE_RESET = re.compile(r"^/v1/admin/workspace/reset$")
     _ROUTE_ADMIN_PROFILE_UPDATE = re.compile(r"^/v1/admin/profile/update$")
     _ROUTE_ADMIN_CREDENTIALS_CHANGE_PASSWORD = re.compile(r"^/v1/admin/credentials/change-password$")
+    _ROUTE_DEBUG_SNAPSHOT = re.compile(r"^/v1/tenants/([^/]+)/debug-snapshot$")
 
     _BUNDLE_FORBIDDEN_QUERY = {
         "record_type",
@@ -178,6 +179,51 @@ class Layer5API:
                 user_agent=self._request_user_agent(request),
             )
             return self._runtime.dashboard(tenant_id, authz_scope=ctx.tenant_scope)
+
+        m = self._ROUTE_DEBUG_SNAPSHOT.match(path)
+        if m:
+            self._require_method(method, "GET")
+            tenant_id = m.group(1)
+            ctx = self._session_guard.require_session(
+                self._authorization_header(request),
+                client_ip=self._request_ip(request),
+                user_agent=self._request_user_agent(request),
+            )
+            ctx.tenant_scope.assert_allowed(tenant_id)
+            from infrastructure.db.connection import get_conn, put_conn, use_postgres
+            import psycopg2.extras
+            if not use_postgres():
+                return {"error": "not using postgres"}
+            conn = get_conn()
+            try:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    cur.execute("SELECT tenant_id, cycle_id, length(payload::text) AS payload_size, created_at FROM snapshots WHERE tenant_id = %s ORDER BY cycle_id DESC LIMIT 5", (tenant_id,))
+                    snapshots = [dict(r) for r in cur.fetchall()]
+                    cur.execute("SELECT tenant_id, COUNT(*) AS cnt FROM snapshots GROUP BY tenant_id")
+                    all_tenants = [dict(r) for r in cur.fetchall()]
+                    cur.execute("SELECT tenant_id FROM tenants")
+                    tenants = [r["tenant_id"] for r in cur.fetchall()]
+                    cur.execute("SELECT operator_id, tenant_id FROM operator_tenant_links")
+                    links = [dict(r) for r in cur.fetchall()]
+                    cur.execute("SELECT id, tenant_id, length(payload::text) AS payload_size FROM cycle_metadata WHERE tenant_id = %s ORDER BY id DESC LIMIT 5", (tenant_id,))
+                    cycles = [dict(r) for r in cur.fetchall()]
+                for r in snapshots:
+                    if hasattr(r.get("created_at"), "isoformat"):
+                        r["created_at"] = r["created_at"].isoformat()
+                for r in cycles:
+                    for k, v in list(r.items()):
+                        if hasattr(v, "isoformat"):
+                            r[k] = v.isoformat()
+                return {
+                    "requested_tenant_id": tenant_id,
+                    "snapshots_for_tenant": snapshots,
+                    "all_snapshot_tenants": all_tenants,
+                    "all_tenants": tenants,
+                    "operator_tenant_links": links,
+                    "cycle_metadata_for_tenant": cycles,
+                }
+            finally:
+                put_conn(conn)
 
         m = self._ROUTE_ENDPOINTS.match(path)
         if m:
