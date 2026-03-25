@@ -365,11 +365,11 @@ class UnifiedCycleOrchestrator:
             _enforce_cycle_budget("discovery")
 
             # Pass the full cycle deadline to the discovery engine.
-            # Expansion phases are capped by their own sub-budgets (75s each
-            # for cat_a, bcde, exploration, exploitation) so they stop
-            # naturally at ~2.5 min. The cycle_deadline_unix_ms (5 min from
-            # cycle start) is only reached by the post-expansion TLS observation
-            # phase, which therefore gets the remaining ~2.5 min to probe.
+            # Expansion phases are capped by their own sub-budgets (45s each
+            # for cat_a, bcde, exploitation) so they stop naturally at ~2 min.
+            # The cycle_deadline_unix_ms (5 min from cycle start) acts as a
+            # hard cutoff — checked after every module turn — ensuring the
+            # entire discovery (expansion + observation) finishes within budget.
             raw_observations = self._run_discovery_compat(
                 tenant_id=tenant_id,
                 rate_controller=rate_controller,

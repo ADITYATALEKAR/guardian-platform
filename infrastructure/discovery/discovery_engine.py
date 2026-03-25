@@ -472,7 +472,7 @@ class DiscoveryEngine:
                     "stage_name": "productive_exploitation",
                     "active_category": "A+BCDE",
                     "budget_seconds": int(expansion_config.exploitation_budget_seconds),
-                    "turn_slice_seconds": 25,
+                    "turn_slice_seconds": 15,
                 },
             ]
 
@@ -977,6 +977,10 @@ class DiscoveryEngine:
                             exc,
                         )
                     measured_elapsed_seconds = max(0.0, time.monotonic() - turn_started_at)
+                    # Hard cycle deadline check after each turn. Modules can
+                    # overshoot their turn budget, so we must check immediately
+                    # after return — not just at the top of the next iteration.
+                    _assert_cycle_budget(spec["stage_name"])
                     turn_actual_elapsed_seconds = round(
                         max(
                             measured_elapsed_seconds,
