@@ -710,8 +710,8 @@ class OperatorService:
 
     def delete_operator(self, operator_id: str) -> None:
         _ = get_operator(self._operator_storage_root, operator_id)
-        sessions_backup = self._snapshot_operator_sessions(operator_id)
         links_backup = list_tenants(self._operator_storage_root, operator_id)
+
         # Record intentional deletion so _seed_admin_from_env won't recreate this account.
         try:
             from infrastructure.db.connection import use_postgres, set_setting
@@ -720,17 +720,29 @@ class OperatorService:
         except Exception:
             pass
 
+        try:
+            from infrastructure.db.connection import use_postgres as _up
+            from infrastructure.operator_plane.storage.pg_operator_storage import (
+                delete_operator_pg,
+            )
+            if _up():
+                # In Postgres mode: one targeted DELETE covers operator,
+                # links, and sessions atomically — no read-modify-write.
+                delete_operator_pg(self._operator_storage_root, operator_id)
+                return
+        except Exception:
+            pass
+
+        # Filesystem fallback
+        sessions_backup = self._snapshot_operator_sessions(operator_id)
         revoked_tokens: List[str] = []
         links_removed = False
-
         try:
             for token in sorted(sessions_backup.keys()):
                 delete_session(self._operator_storage_root, token)
                 revoked_tokens.append(token)
-
             remove_operator(self._operator_storage_root, operator_id)
             links_removed = True
-
             delete_operator_record_only(self._operator_storage_root, operator_id)
         except Exception as exc:
             try:

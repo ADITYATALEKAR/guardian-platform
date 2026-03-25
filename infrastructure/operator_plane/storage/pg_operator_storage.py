@@ -61,9 +61,9 @@ def read_operators(root: str | Path) -> Dict[str, Any]:
 
 def write_operators(root: str | Path, payload: Dict[str, Any]) -> None:
     """
-    Bulk-replace operators is not used in the registry — the registry always
-    reads, mutates, and writes a full dict.  We implement this as an UPSERT
-    loop so the contract is honoured.
+    Upsert operators present in payload. Operators absent from payload are
+    deleted only if they were explicitly in the previous read — we use
+    targeted per-operator_id operations to avoid wiping concurrent users.
     """
     if not use_postgres():
         _fs.write_operators(root, payload)
@@ -71,16 +71,7 @@ def write_operators(root: str | Path, payload: Dict[str, Any]) -> None:
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            # Delete operators that are no longer in the payload.
-            if payload:
-                ids = list(payload.keys())
-                cur.execute(
-                    "DELETE FROM operators WHERE operator_id != ALL(%s::text[])",
-                    (ids,),
-                )
-            else:
-                cur.execute("DELETE FROM operators")
-
+            # Upsert every operator in payload.
             for op in payload.values():
                 cur.execute(
                     """
@@ -103,6 +94,25 @@ def write_operators(root: str | Path, payload: Dict[str, Any]) -> None:
                         op.get("role", "OWNER"),
                     ),
                 )
+        conn.commit()
+    finally:
+        put_conn(conn)
+
+
+def delete_operator_pg(root: str | Path, operator_id: str) -> None:
+    """Targeted single-operator delete for Postgres mode."""
+    if not use_postgres():
+        return  # filesystem path handles it via write_operators
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM operators WHERE operator_id = %s", (operator_id,))
+            cur.execute(
+                "DELETE FROM operator_tenant_links WHERE operator_id = %s", (operator_id,)
+            )
+            cur.execute(
+                "DELETE FROM operator_sessions WHERE operator_id = %s", (operator_id,)
+            )
         conn.commit()
     finally:
         put_conn(conn)
@@ -135,16 +145,22 @@ def read_operator_links(root: str | Path) -> Dict[str, Any]:
 
 
 def write_operator_links(root: str | Path, payload: Dict[str, Any]) -> None:
-    """payload = {operator_id: [tenant_id, ...]}"""
+    """payload = {operator_id: [tenant_id, ...]}
+    Only touches rows for operator_ids present in payload — never deletes
+    other operators' links (prevents cross-tenant data corruption).
+    """
     if not use_postgres():
         _fs.write_operator_links(root, payload)
         return
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            # Full replace — delete all then re-insert.
-            cur.execute("DELETE FROM operator_tenant_links")
             for operator_id, tenant_ids in payload.items():
+                # Replace only this operator's links.
+                cur.execute(
+                    "DELETE FROM operator_tenant_links WHERE operator_id = %s",
+                    (operator_id,),
+                )
                 for tenant_id in tenant_ids:
                     cur.execute(
                         "INSERT INTO operator_tenant_links (operator_id, tenant_id) "
